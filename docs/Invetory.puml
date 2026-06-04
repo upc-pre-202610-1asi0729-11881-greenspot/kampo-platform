@@ -11,55 +11,120 @@ package "com.acme.kampo.platform"{
                 +getInventoryById(inventoryId: Long): ResponseEntity<?>
                 +getAllInventory(): ResponseEntity<?>
             }
+            class SupplierController <<controller>>{
+                -supplierCommandService: SupplierCommandService
+                -supplierQueryService: SupplierQueryService
+                +createSupplier(resource: CreateSupplierResource): ResponseEntity<?>
+                +getSupplierById(supplierId: Long): ResponseEntity<?>
+                +getAllSuppliers(): ResponseEntity<?>
+            }
+            class OrderInputController <<controller>>{
+                -orderInputCommandService: OrderInputCommandService
+                -orderInputQueryService: OrderInputQueryService
+                +createOrderInput(resource: CreateOrderInputResource): ResponseEntity<?>
+                +getOrderInputById(orderId: Long): ResponseEntity<?>
+                +getAllOrderInputs(): ResponseEntity<?>
+            }
         }
+
         package "interfaces.acl"{
             interface InventoryContextFacade <<facade>>{
-                +createInventory():Long
+                +createInventory(): Long
+                +createSupplier(): Long
+                +createOrderInput(): Long
+                +fetchInventoryIdBy...(): Long
             }
         }
         package "interfaces.events"{
-            class InventoryCreatedIntegrationEvent <<integration event>>{
-
-            }
+            class InventoryCreatedIntegrationEvent <<integration event>>
+            class SupplierCreatedIntegrationEvent <<integration event>>
+            class OrderInputCreatedIntegrationEvent <<integration event>>
         }
         package "application.commandservices"{
             interface InventoryCommandService <<service>>{
                 +handle(command: CreatedInventoryCommand): Result<Inventory,ApplicationError>
             }
+            interface SupplierCommandService <<service>>{
+                +handle(command: AddSupplierCommand): Result<Supplier,ApplicationError>
+            }
+            interface OrderInputCommandService <<service>>{
+                +handle(command: OrderInputCommand): Result<OrderInput,ApplicationError>
+                +handle(command: ReceiveInputCommand): Result<OrderInput,ApplicationError>
+            }
         }
         package "application.queryservices"{
-            interface InventoryQueryService <<service>> {
-                +handle(query: GetInventoryByIdQuery):Optional<Inventory>
-                +handle(query: GetInventoryBy...):Optional<Inventory>
-                +handle(query: GetAllInventoryQuery):List<Inventory>
+            interface InventoryQueryService <<service>>{
+                +handle(query: GetInventoryByIdQuery): Optional<Inventory>
+                +handle(query: GetAllInventoryQuery): List<Inventory>
+            }
+            interface SupplierQueryService <<service>>{
+                +handle(query: GetSupplierByIdQuery): Optional<Supplier>
+                +handle(query: GetAllSuppliersQuery): List<Supplier>
+            }
+            interface OrderInputQueryService <<service>>{
+                +handle(query: GetOrderInputByIdQuery): Optional<OrderInput>
+                +handle(query: GetAllOrderInputsQuery): List<OrderInput>
             }
         }
         package "application.internal.commandservices"{
-            class InventoryCommandServiceImpl <<service>> {
+            class InventoryCommandServiceImpl <<service>>{
                 -inventoryRepository: InventoryRepository
-                +handle(command: CreatedInventoryCommand): Result<Inventory,ApplicationError>
+                +handle(command: CreateInventoryCommand): Result<Inventory,ApplicationError>
+            }
+            class SupplierCommandServiceImpl <<service>>{
+                -supplierRepository: SupplierRepository
+                +handle(command: AddSupplierCommand): Result<Supplier,ApplicationError>
+            }
+            class OrderInputCommandServiceImpl <<service>>{
+                -orderInputRepository: OrderInputRepository
+                -inventoryRepository: InventoryRepository
+                +handle(command: OrderInputCommand): Result<OrderInput,ApplicationError>
+                +handle(command: ReceiveInputCommand): Result<OrderInput,ApplicationError>
             }
         }
         package "application.internal.queryservices"{
-            class InventoryQueryServiceImpl <<service>> {
+            class InventoryQueryServiceImpl <<service>>{
                 -inventoryRepository: InventoryRepository
-                +handle(query: GetInventoryByIdQuery) : Optional<Inventory>
-                +handle(query:GetInventoryBy...Query):Optional<Inventory>
-                +handle(query: GetAllInventoryQuery): List<Profile>
+                +handle(query: GetInventoryByIdQuery): Optional<Inventory>
+                +handle(query: GetAllInventoryQuery): List<Inventory>
+            }
+            class SupplierQueryServiceImpl <<service>>{
+                -supplierRepository: SupplierRepository
+                +handle(query: GetSupplierByIdQuery): Optional<Supplier>
+                +handle(query: GetAllSuppliersQuery): List<Supplier>
+            }
+            class OrderInputQueryServiceImpl <<service>>{
+                -orderInputRepository: OrderInputRepository
+                +handle(query: GetOrderInputByIdQuery): Optional<OrderInput>
+                +handle(query: GetAllOrderInputsQuery): List<OrderInput>
             }
         }
         package "application.internal.eventhandlers"{
-            class InventoriesInventoryCreatedEventHandler <<event handler>> {
+            class InventoriesInventoryCreatedEventHandler <<event handler>>{
                 -eventPublisher: ApplicationEventPublisher
-                +on(event: ProfileCreatedEvent): void
+                +on(event: InventoryCreatedEvent): void
+            }
+            class InventoriesSupplierCreatedEventHandler <<event handler>>{
+                -eventPublisher: ApplicationEventPublisher
+                +on(event: SupplierCreatedEvent): void
+            }
+            class InventoriesOrderInputCreatedEventHandler <<event handler>>{
+                -eventPublisher: ApplicationEventPublisher
+                +on(event: OrderInputCreatedEvent): void
             }
         }
         package "application.acl"{
-            class InventoriesContextFacadeImpl <<facade>> {
+            class InventoriesContextFacadeImpl <<facade>>{
                 -inventoryCommandService: InventoryCommandService
                 -inventoryQueryService: InventoryQueryService
-                +createInventory():Long
-                +fetchInventoryIdBy...():Long
+                -supplierCommandService: SupplierCommandService
+                -supplierQueryService: SupplierQueryService
+                -orderInputCommandService: OrderInputCommandService
+                -orderInputQueryService: OrderInputQueryService
+                +createInventory(): Long
+                +createSupplier(): Long
+                +createOrderInput(): Long
+                +fetchInventoryIdBy...(): Long
             }
         }
         package "domain.model.aggregates"{
@@ -132,20 +197,41 @@ package "com.acme.kampo.platform"{
             }
         }
         package "domain.model.events"{
-            class InventoryCreatedEvent <<damin event>>{}
+            class InventoryCreatedEvent <<domain event>>
+            class SupplierCreatedEvent <<domain event>>
+            class OrderInputCreatedEvent <<domain event>>
         }
         package "domain.respositories"{
             interface InventoryRepository <<repository>>{
-                +findById(id:Long):Optional<Profile>
-                +findAll():List<Inventory>
-                +save(inventory: Inventory):Inventory
+                +findById(id: Long): Optional<Inventory>
+                +findAll(): List<Inventory>
+                +save(inventory: Inventory): Inventory
             }
+            interface SupplierRepository <<repository>>{
+                +findById(id: Long): Optional<Supplier>
+                +findAll(): List<Supplier>
+                +save(supplier: Supplier): Supplier
+            }
+            interface OrderInputRepository <<repository>>{
+                +findById(id: Long): Optional<OrderInput>
+                +findAll(): List<OrderInput>
+                +save(orderInput: OrderInput): OrderInput
+            }
+        }
+        package "infrastructure.persistence.jpa.repositories"{
+            interface InventoryJpaRepository <<jpa repository>>
+            interface OrderInputJpaRepository<<jpa repository>>
+            interface SupplierJpaRepository <<jpa repository>>
         }
         package "infrastructure.persistence.jpa.adapters"{
             class InventoryRepositoryImpl <<adapter>>
+            class OrderInputRepositoryImpl<<adapter>>
+            class SupplierRepositoryImpl <<adapter>>
         }
         package "infrastructure.persistence.jpa.entities"{
             class InventoryPersistenceEntity <<entity>>
+            class OrderInputPersistenceEntity <<entity>>
+            class SupplierPersistenceEntity <<entity>>
         }
     }
 
@@ -170,12 +256,47 @@ InventoryCommandServiceImpl --> InventoryRepository
 InventoryQueryServiceImpl --> InventoryRepository
 InventoryRepositoryImpl ..|> InventoryRepository
 
+SupplierController --> SupplierCommandService
+SupplierController --> SupplierQueryService
+
+InventoriesContextFacadeImpl --> SupplierCommandService
+InventoriesContextFacadeImpl --> SupplierQueryService
+
+SupplierCommandServiceImpl ..|> SupplierCommandService
+SupplierQueryServiceImpl ..|> SupplierQueryService
+SupplierCommandServiceImpl --> SupplierRepository
+SupplierQueryServiceImpl --> SupplierRepository
+SupplierRepositoryImpl ..|> SupplierRepository
+
+
+OrderInputRepositoryImpl ..|> OrderInputRepository
+
+InventoryPersistenceEntity --> Inventory : toDomainModel()
+InventoryRepositoryImpl --> InventoryPersistenceEntity : uses
+InventoryJpaRepository --> InventoryPersistenceEntity : manages
+
+OrderInputPersistenceEntity --> OrderInput: toDomainModel()
+OrderInputRepositoryImpl --> OrderInputPersistenceEntity: uses
+OrderInputJpaRepository --> OrderInputPersistenceEntity : manages
+
+SupplierPersistenceEntity --> Supplier: toDomainModel()
+SupplierRepositoryImpl --> SupplierPersistenceEntity: uses
+SupplierJpaRepository --> SupplierPersistenceEntity : manages
+
 Inventory --> InventoryId
 Supplier --> SupplierId
 OrderInput --> OrderId
 
 Inventory --> InventoryStatus
 OrderInput --> OrderStatus
+
+Supplier ..> SupplierCreatedEvent:publishes
+InventoriesSupplierCreatedEventHandler --> SupplierCreatedEvent
+InventoriesSupplierCreatedEventHandler --> SupplierCreatedIntegrationEvent: republishes
+
+OrderInput ..> OrderInputCreatedEvent: publishes
+InventoriesOrderInputCreatedEventHandler --> OrderInputCreatedEvent
+InventoriesOrderInputCreatedEventHandler --> OrderInputCreatedIntegrationEvent: republishes
 
 Inventory ..> InventoryCreatedEvent: publishes
 InventoriesInventoryCreatedEventHandler --> InventoryCreatedEvent
