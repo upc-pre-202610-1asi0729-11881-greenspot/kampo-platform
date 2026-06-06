@@ -11,66 +11,72 @@ import lombok.Setter;
 
 import java.util.Objects;
 
+
 /**
- * Inventory aggregate root.
+ * Aggregate root that represents a managed inventory item.
  *
- * <p>Extends {@link AbstractDomainAggregateRoot} to gain domain event registration
- * support. No JPA or persistence annotation is present here -- those concerns live
- * exclusively in {@code InventoryPersistenceEntity}.</p>
+ * <p>Responsible for:
+ * <ul>
+ *   <li>Tracking the current stock quantity and unit of measure.</li>
+ *   <li>Evaluating whether stock has dropped to or below the minimum threshold.</li>
+ *   <li>Publishing {@link InventoryCreatedEvent} upon creation.</li>
+ * </ul>
+ *
+ * <p>Identity is carried by {@link InventoryId}. The raw {@code Long} surrogate key
+ * is managed by the infrastructure persistence entity and injected via
+ * {@code reconstitute()} — the aggregate itself never generates IDs.
  */
+@Getter
 public class Inventory extends AbstractDomainAggregateRoot<Inventory> {
-    @Getter
-    @Setter
+
     private InventoryId id;
-    @Getter
-    @Setter
     private String name;
-    @Getter
-    @Setter
     private int quantity;
-    @Getter
-    @Setter
     private String unit;
-    @Getter
-    @Setter
     private int minStock;
-    @Getter
-    @Setter
     private InventoryStatus status;
 
-    /** Required by JPA proxy and reconstitution — do not use directly. */
+    /** Required by JPA proxy — do not use directly. */
     protected Inventory() {}
 
     /**
-     * Creates a Inventory from the provided domain values.
+     * Reconstitution constructor — rebuilds the aggregate directly from
+     * persisted values without triggering any domain logic or events.
+     * Used exclusively by {@link com.acme.kampo.platform.inventory.infrastructure.persistence.jpa.assemblers.InventoryPersistenceAssembler}.
+     *
+     * @param id       the persisted surrogate key
+     * @param name     the inventory item name
+     * @param quantity current stock quantity
+     * @param unit     unit of measure
+     * @param minStock minimum stock threshold
+     * @param status   current inventory status
      */
-    public Inventory(InventoryId id, String name, Integer quantity, String unit, Integer minStock, InventoryStatus status) {
-        this.id       = id;
-        this.name     = Objects.requireNonNull(name, "name must not be null");
-        this.quantity = Objects.requireNonNull(quantity, "quantity must not be null");
-        this.unit     = Objects.requireNonNull(unit, "unit must not be null");
-        this.minStock = Objects.requireNonNull(minStock, "minStock must not be null");
-        this.status   = Objects.requireNonNull(status, "status must not be null");
-    }
-    /**
-     * Creates a Inventory from the provided domain values.
-     */
-    public Inventory(String name, Integer quantity, String unit, Integer minStock,InventoryStatus status) {
-        this(null, name, quantity, unit, minStock, status);
+    public Inventory(Long id, String name, int quantity, String unit,
+                     int minStock, InventoryStatus status) {
+        this.id       = InventoryId.of(id);
+        this.name     = name;
+        this.quantity = quantity;
+        this.unit     = unit;
+        this.minStock = minStock;
+        this.status   = status;
     }
 
     /**
-     * Constructor with a CreateInventoryCommand.
-     * @param command The {@link CreateInventoryCommand} instance
+     * Creates a new Inventory item from a {@link CreateInventoryCommand}.
+     * Registers an {@link InventoryCreatedEvent} to be published after save.
+     *
+     * @param command the creation command carrying all required data
      */
-    public Inventory(CreateInventoryCommand command){
-        this.name= command.name();
+    public Inventory(CreateInventoryCommand command) {
+        this.name = command.name();
         this.quantity = command.quantity();
         this.unit = command.unit();
         this.minStock = command.minStock();
-        this.status = InventoryStatus.from(command.quantity(),command.minStock());
-        registerDomainEvent(new InventoryCreatedEvent(null,name,quantity,unit));
+        this.status = InventoryStatus.from(command.quantity(), command.minStock());
+        // Event will be published after the aggregate is persisted
+        registerDomainEvent(new InventoryCreatedEvent(this));
     }
+
     /**
      * Reconstitutes an Inventory from persistence, binding its typed identity.
      * Called by the infrastructure adapter after saving, so the real ID is known.
@@ -82,6 +88,7 @@ public class Inventory extends AbstractDomainAggregateRoot<Inventory> {
         this.id = InventoryId.of(rawId);
         return this;
     }
+
     // ── Behavior ──────────────────────────────────────────────────────────────
 
     /**
@@ -101,7 +108,8 @@ public class Inventory extends AbstractDomainAggregateRoot<Inventory> {
         this.quantity = newQuantity;
         this.status = InventoryStatus.from(this.quantity, this.minStock);
     }
-     /**
+
+    /**
      * Evaluates whether current stock is at or below the minimum threshold.
      *
      * @return {@code true} if status is LOW_STOCK or OUT_OF_STOCK
@@ -109,8 +117,5 @@ public class Inventory extends AbstractDomainAggregateRoot<Inventory> {
     public boolean evaluateMinStock() {
         return status == InventoryStatus.LOW_STOCK || status == InventoryStatus.OUT_OF_STOCK;
     }
-
-
-
 
 }

@@ -1,6 +1,7 @@
 package com.acme.kampo.platform.inventory.domain.repositories;
 
 import com.acme.kampo.platform.inventory.domain.model.aggregates.OrderInput;
+import com.acme.kampo.platform.inventory.domain.model.enums.OrderStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -40,4 +41,10 @@ public interface OrderInputRepository {
      * @return a list of all orders, possibly empty
      */
     List<OrderInput> findAll();
+
+    List<OrderInput> findAllByInventoryId(Long inventoryId);
+
+    List<OrderInput> findAllByStatus(OrderStatus status);
+
+    boolean hasPendingOrders(Long inventoryId);
 }

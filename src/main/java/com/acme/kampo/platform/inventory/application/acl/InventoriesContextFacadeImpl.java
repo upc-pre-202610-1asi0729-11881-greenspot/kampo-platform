@@ -9,6 +9,7 @@ import com.acme.kampo.platform.inventory.domain.model.command.CreateInventoryCom
 import com.acme.kampo.platform.inventory.domain.model.command.OrderInputCommand;
 import com.acme.kampo.platform.inventory.domain.model.queries.GetAllInventoryQuery;
 import com.acme.kampo.platform.inventory.interfaces.acl.InventoryContextFacade;
+import com.acme.kampo.platform.shared.application.result.Result;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -23,9 +24,9 @@ import java.util.Optional;
 @Service
 public class InventoriesContextFacadeImpl implements InventoryContextFacade {
 
-    private final InventoryCommandService inventoryCommandService;
-    private final InventoryQueryService inventoryQueryService;
-    private final SupplierCommandService supplierCommandService;
+    private final InventoryCommandService  inventoryCommandService;
+    private final InventoryQueryService    inventoryQueryService;
+    private final SupplierCommandService   supplierCommandService;
     private final OrderInputCommandService orderInputCommandService;
 
     public InventoriesContextFacadeImpl(
@@ -41,23 +42,41 @@ public class InventoriesContextFacadeImpl implements InventoryContextFacade {
 
     @Override
     public Long createInventory(String name, int quantity, String unit, int minStock) {
-        var command   = new CreateInventoryCommand(name, quantity, unit, minStock);
-        var inventory = inventoryCommandService.handle(command);
-        return inventory.getId().getValue();
+        var result = inventoryCommandService.handle(
+                new CreateInventoryCommand(name, quantity, unit, minStock));
+        return switch (result) {
+            case Result.Success<?, ?> s ->
+                    ((com.acme.kampo.platform.inventory.domain.model.aggregates.Inventory) s.value())
+                            .getId().getValue();
+            case Result.Failure<?, ?> f ->
+                    throw new IllegalStateException("Could not create inventory: " + f.error());
+        };
     }
 
     @Override
     public Long createSupplier(String name, String contact, String email) {
-        var command  = new AddSupplierCommand(name, contact, email);
-        var supplier = supplierCommandService.handle(command);
-        return supplier.getId().getValue();
+        var result = supplierCommandService.handle(
+                new AddSupplierCommand(name, contact, email));
+        return switch (result) {
+            case Result.Success<?, ?> s ->
+                    ((com.acme.kampo.platform.inventory.domain.model.aggregates.Supplier) s.value())
+                            .getId().getValue();
+            case Result.Failure<?, ?> f ->
+                    throw new IllegalStateException("Could not create supplier: " + f.error());
+        };
     }
 
     @Override
     public Long createOrderInput(Long inventoryId, Long supplierId, int quantity) {
-        var command = new OrderInputCommand(inventoryId, supplierId, quantity);
-        var order   = orderInputCommandService.handle(command);
-        return order.getId().getValue();
+        var result = orderInputCommandService.handle(
+                new OrderInputCommand(inventoryId, supplierId, quantity));
+        return switch (result) {
+            case Result.Success<?, ?> s ->
+                    ((com.acme.kampo.platform.inventory.domain.model.aggregates.OrderInput) s.value())
+                            .getId().getValue();
+            case Result.Failure<?, ?> f ->
+                    throw new IllegalStateException("Could not create order input: " + f.error());
+        };
     }
 
     @Override

@@ -3,29 +3,25 @@ package com.acme.kampo.platform.inventory.infrastructure.persistence.jpa.entitie
 import com.acme.kampo.platform.inventory.domain.model.aggregates.Inventory;
 import com.acme.kampo.platform.inventory.domain.model.command.CreateInventoryCommand;
 import com.acme.kampo.platform.inventory.domain.model.enums.InventoryStatus;
+import com.acme.kampo.platform.shared.infrastructure.persistence.jpa.entities.AuditableAbstractPersistenceEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.Setter;
 
 /**
- * JPA persistence entity for the {@link Inventory} aggregate.
+ * JPA persistence entity for the Inventory aggregate.
  *
- * <p>This class is an infrastructure concern only — it knows about tables,
- * columns, and JPA annotations. The domain aggregate knows nothing about this class.
+ * <p>Extends {@link AuditableAbstractPersistenceEntity} to inherit {@code id},
+ * {@code createdAt} and {@code updatedAt} — no need to redeclare {@code @Id}.</p>
  *
- * <p>Mapping strategy:
- * <ul>
- *   <li>{@code toDomainModel()} reconstructs a fully hydrated {@link Inventory} aggregate.</li>
- *   <li>{@code fromDomainModel()} produces a persistence entity ready to be saved.</li>
- * </ul>
+ * <p>Mapping concerns only — translation to/from the domain aggregate is handled
+ * by {@link com.acme.kampo.platform.inventory.infrastructure.persistence.jpa.assemblers.InventoryPersistenceAssembler}.</p>
  */
+@Setter
 @Getter
 @Entity
 @Table(name = "inventories")
-public class InventoryPersistenceEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class InventoryPersistenceEntity extends AuditableAbstractPersistenceEntity {
 
     @Column(nullable = false)
     private String name;
@@ -43,50 +39,6 @@ public class InventoryPersistenceEntity {
     @Column(nullable = false, length = 20)
     private InventoryStatus status;
 
-    /** Required by JPA — do not use directly. */
-    protected InventoryPersistenceEntity() {}
-
-    private InventoryPersistenceEntity(Long id, String name, int quantity,
-                                       String unit, int minStock, InventoryStatus status) {
-        this.id       = id;
-        this.name     = name;
-        this.quantity = quantity;
-        this.unit     = unit;
-        this.minStock = minStock;
-        this.status   = status;
-    }
-
-    // ── Mapping ───────────────────────────────────────────────────────────────
-
-    /**
-     * Reconstructs the {@link Inventory} aggregate from this persistence entity.
-     * Uses a minimal {@link CreateInventoryCommand} to re-create the aggregate state,
-     * then calls {@code reconstitute()} to bind the real database ID.
-     */
-    public Inventory toDomainModel() {
-        var command = new CreateInventoryCommand(name, quantity, unit, minStock);
-        var inventory = new Inventory(command);
-        // Clear the domain event registered during construction — this is a
-        // reconstitution from persistence, not a fresh creation.
-        inventory.clearDomainEvents();
-        return inventory.reconstitute(id);
-    }
-
-    /**
-     * Produces a persistence entity from an {@link Inventory} aggregate.
-     * If the aggregate has no ID yet (new), {@code id} will be null and
-     * JPA will assign it on insert.
-     */
-    public static InventoryPersistenceEntity fromDomainModel(Inventory inventory) {
-        Long rawId = (inventory.getId() != null) ? inventory.getId().getValue() : null;
-        return new InventoryPersistenceEntity(
-                rawId,
-                inventory.getName(),
-                inventory.getQuantity(),
-                inventory.getUnit(),
-                inventory.getMinStock(),
-                inventory.getStatus()
-        );
-    }
+    public InventoryPersistenceEntity() {}
 
 }

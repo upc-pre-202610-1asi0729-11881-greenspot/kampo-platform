@@ -1,19 +1,12 @@
 package com.acme.kampo.platform.inventory.domain.model.events;
 
+import com.acme.kampo.platform.inventory.domain.model.aggregates.Inventory;
+
 /**
- * Domain event published when a new Inventory item is successfully created.
+ * Domain event published when a new {@link Inventory} item is successfully created.
+ * Carries the full aggregate so consumers can extract whatever fields they need
+ * without requiring an extra query.
  *
- * <p>Carries enough data for consumers to react without an extra query:
- * the new inventory ID, its name, initial quantity and unit.</p>
- *
- * @param inventoryId the ID assigned to the new inventory item
- * @param name        the name of the inventory item
- * @param quantity    the initial stock quantity
- * @param unit        the unit of measure
+ * @param inventory the newly persisted inventory aggregate
  */
-public record InventoryCreatedEvent(
-        Long inventoryId,
-        String name,
-        int quantity,
-        String unit
-) {}
+public record InventoryCreatedEvent(Inventory inventory) {}

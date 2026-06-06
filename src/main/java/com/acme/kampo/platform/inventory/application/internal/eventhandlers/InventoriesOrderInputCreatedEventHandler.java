@@ -6,12 +6,18 @@ import com.acme.kampo.platform.inventory.interfaces.events.OrderInputCreatedInte
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 /**
- * Listens for {@link OrderInputCreatedEvent} domain events and republishes
- * them as {@link OrderInputCreatedIntegrationEvent} for cross-context consumers.
+ * Internal application-layer handler for the {@link OrderInputCreatedEvent} domain event.
+ *
+ * <p>Translates the internal domain event into a {@link OrderInputCreatedIntegrationEvent}
+ * and re-publishes it on the Spring event bus.</p>
+ *
+ * <p>Other bounded contexts must subscribe to {@link OrderInputCreatedIntegrationEvent},
+ * never to the internal {@link OrderInputCreatedEvent}.</p>
  */
-@Component
+@Service("inventoryOrderInputCreatedEventHandler")
 public class InventoriesOrderInputCreatedEventHandler {
 
     private final ApplicationEventPublisher eventPublisher;
@@ -20,14 +26,14 @@ public class InventoriesOrderInputCreatedEventHandler {
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * Receives the internal {@link OrderInputCreatedEvent} and publishes the
+     * corresponding {@link OrderInputCreatedIntegrationEvent} for cross-context consumers.
+     *
+     * @param event the internal domain event carrying the saved order
+     */
     @EventListener
     public void on(OrderInputCreatedEvent event) {
-        eventPublisher.publishEvent(new OrderInputCreatedIntegrationEvent(
-                event.orderId(),
-                event.inventoryId(),
-                event.supplierId(),
-                event.quantity()
-        ));
+        eventPublisher.publishEvent(OrderInputCreatedIntegrationEvent.from(event.order()));
     }
 }
-

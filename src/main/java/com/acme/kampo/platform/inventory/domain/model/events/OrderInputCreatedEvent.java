@@ -1,16 +1,10 @@
 package com.acme.kampo.platform.inventory.domain.model.events;
 
+import com.acme.kampo.platform.inventory.domain.model.aggregates.OrderInput;
+
 /**
- * Domain event published when a new OrderInput is successfully placed.
+ * Domain event published when a new {@link OrderInput} is successfully placed.
  *
- * @param orderId     the ID assigned to the new order
- * @param inventoryId the inventory item being ordered
- * @param supplierId  the supplier fulfilling the order
- * @param quantity    the number of units ordered
+ * @param order the newly persisted order aggregate
  */
-public record OrderInputCreatedEvent(
-        Long orderId,
-        Long inventoryId,
-        Long supplierId,
-        int quantity
-) {}
+public record OrderInputCreatedEvent(OrderInput order) {}

@@ -4,6 +4,8 @@ import com.acme.kampo.platform.inventory.application.commandservices.InventoryCo
 import com.acme.kampo.platform.inventory.domain.model.aggregates.Inventory;
 import com.acme.kampo.platform.inventory.domain.model.command.CreateInventoryCommand;
 import com.acme.kampo.platform.inventory.domain.repositories.InventoryRepository;
+import com.acme.kampo.platform.shared.application.result.ApplicationError;
+import com.acme.kampo.platform.shared.application.result.Result;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,17 +25,20 @@ public class InventoryCommandServiceImpl implements InventoryCommandService {
         this.inventoryRepository = inventoryRepository;
     }
 
-    /**
-     * Creates a new Inventory item:
-     * <ol>
-     *   <li>Constructs the aggregate from the command (domain event registered inside).</li>
-     *   <li>Persists via the domain repository — the adapter handles ID assignment
-     *       and calls {@code reconstitute()} before returning.</li>
-     * </ol>
-     */
     @Override
-    public Inventory handle(CreateInventoryCommand command) {
-        var inventory = new Inventory(command);
-        return inventoryRepository.save(inventory);
+    public Result<Inventory, ApplicationError> handle(CreateInventoryCommand command) {
+        if (inventoryRepository.existsByName(command.name())) {
+            return Result.failure(ApplicationError.conflict(
+                    "INVENTORY",
+                    "An inventory item with name '%s' already exists".formatted(command.name())));
+        }
+        try {
+            var inventory = inventoryRepository.save(new Inventory(command));
+            return Result.success(inventory);
+        } catch (Exception e) {
+            return Result.failure(ApplicationError.unexpected(
+                    "InventoryCommandService.handle",
+                    e.getMessage()));
+        }
     }
 }

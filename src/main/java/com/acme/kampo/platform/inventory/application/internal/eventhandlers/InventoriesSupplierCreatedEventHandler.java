@@ -5,12 +5,18 @@ import com.acme.kampo.platform.inventory.interfaces.events.SupplierCreatedIntegr
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 /**
- * Listens for {@link SupplierCreatedEvent} domain events and republishes
- * them as {@link SupplierCreatedIntegrationEvent} for cross-context consumers.
+ * Internal application-layer handler for the {@link SupplierCreatedEvent} domain event.
+ *
+ * <p>Translates the internal domain event into a {@link SupplierCreatedIntegrationEvent}
+ * and re-publishes it on the Spring event bus.</p>
+ *
+ * <p>Other bounded contexts must subscribe to {@link SupplierCreatedIntegrationEvent},
+ * never to the internal {@link SupplierCreatedEvent}.</p>
  */
-@Component
+@Service("inventorySupplierCreatedEventHandler")
 public class InventoriesSupplierCreatedEventHandler {
 
     private final ApplicationEventPublisher eventPublisher;
@@ -19,12 +25,15 @@ public class InventoriesSupplierCreatedEventHandler {
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * Receives the internal {@link SupplierCreatedEvent} and publishes the
+     * corresponding {@link SupplierCreatedIntegrationEvent} for cross-context consumers.
+     *
+     * @param event the internal domain event carrying the saved supplier
+     */
     @EventListener
     public void on(SupplierCreatedEvent event) {
-        eventPublisher.publishEvent(new SupplierCreatedIntegrationEvent(
-                event.supplierId(),
-                event.name(),
-                event.email()
-        ));
+        eventPublisher.publishEvent(SupplierCreatedIntegrationEvent.from(event.supplier()));
     }
 }
+ 

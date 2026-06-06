@@ -3,6 +3,8 @@ package com.acme.kampo.platform.inventory.application.commandservices;
 import com.acme.kampo.platform.inventory.domain.model.aggregates.OrderInput;
 import com.acme.kampo.platform.inventory.domain.model.command.OrderInputCommand;
 import com.acme.kampo.platform.inventory.domain.model.command.ReceiveInputCommand;
+import com.acme.kampo.platform.shared.application.result.ApplicationError;
+import com.acme.kampo.platform.shared.application.result.Result;
 
 /**
  * Application service contract for OrderInput write operations.
@@ -15,7 +17,7 @@ public interface OrderInputCommandService {
      * @param command the command with inventory, supplier and quantity data
      * @return the persisted {@link OrderInput} aggregate with its assigned ID
      */
-    OrderInput handle(OrderInputCommand command);
+    Result<OrderInput, ApplicationError> handle(OrderInputCommand command);
 
     /**
      * Handles receiving a pending order, updating the related inventory stock.
@@ -23,5 +25,5 @@ public interface OrderInputCommandService {
      * @param command the command with the order ID and arrival date-time
      * @return the updated {@link OrderInput} aggregate in RECEIVED status
      */
-    OrderInput handle(ReceiveInputCommand command);
+    Result<OrderInput, ApplicationError> handle(ReceiveInputCommand command);
 }

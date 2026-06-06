@@ -1,56 +1,81 @@
 package com.acme.kampo.platform.inventory.infrastructure.persistence.jpa.adapters;
 
 import com.acme.kampo.platform.inventory.domain.model.aggregates.Inventory;
+import com.acme.kampo.platform.inventory.domain.model.enums.InventoryStatus;
 import com.acme.kampo.platform.inventory.domain.repositories.InventoryRepository;
+import com.acme.kampo.platform.inventory.infrastructure.persistence.jpa.assemblers.InventoryPersistenceAssembler;
 import com.acme.kampo.platform.inventory.infrastructure.persistence.jpa.entities.InventoryPersistenceEntity;
 import com.acme.kampo.platform.inventory.infrastructure.persistence.jpa.repositories.InventoryJpaRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Adapter that implements the domain {@link InventoryRepository} contract
- * using Spring Data JPA as the underlying persistence mechanism.
+ * Adapter implementing the domain {@link InventoryRepository} contract using Spring Data JPA.
  *
- * <p>Responsibilities:
- * <ul>
- *   <li>Translates {@link Inventory} aggregates to {@link InventoryPersistenceEntity} before saving.</li>
- *   <li>Translates {@link InventoryPersistenceEntity} back to {@link Inventory} after loading.</li>
- *   <li>Calls {@code reconstitute()} after saving so the returned aggregate has its assigned ID.</li>
- *   <li>Publishes domain events accumulated in the aggregate after saving via
- *       Spring Data's {@link org.springframework.data.domain.AbstractAggregateRoot} mechanism.</li>
- * </ul>
+ * <p>Acts as the event-publishing boundary: after a brand-new {@link Inventory} is
+ * persisted (and the JPA-assigned id is available), an {@link InventoryCreatedEvent}
+ * is dispatched via Spring's {@link ApplicationEventPublisher}.
+ */
+
+/**
+ * Adapter implementing the domain {@link InventoryRepository} contract using Spring Data JPA.
  */
 @Repository
 public class InventoryRepositoryImpl implements InventoryRepository {
-    private final InventoryJpaRepository jpaRepository;
-    public InventoryRepositoryImpl(InventoryJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
+
+    private final InventoryJpaRepository    jpaRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
+    public InventoryRepositoryImpl(InventoryJpaRepository jpaRepository,
+                                   ApplicationEventPublisher eventPublisher) {
+        this.jpaRepository  = jpaRepository;
+        this.eventPublisher = eventPublisher;
     }
-    /**
-     * Persists the aggregate:
-     * <ol>
-     *   <li>Converts the aggregate to a persistence entity.</li>
-     *   <li>Saves via JPA — Spring Data fires any registered domain events here.</li>
-     *   <li>Binds the database-assigned ID back into the aggregate via {@code reconstitute()}.</li>
-     * </ol>
-     */
+
     @Override
     public Inventory save(Inventory inventory) {
-        var entity = InventoryPersistenceEntity.fromDomainModel(inventory);
-        var saved  = jpaRepository.save(entity);
-        return inventory.reconstitute(saved.getId());
+        boolean isNew      = inventory.getId() == null;
+        var entity         = InventoryPersistenceAssembler.toPersistenceFromDomain(inventory);
+        var savedEntity    = jpaRepository.save(entity);
+        var savedInventory = InventoryPersistenceAssembler.toDomainFromPersistence(savedEntity);
+        if (isNew) {
+            savedInventory.domainEvents().forEach(eventPublisher::publishEvent);
+            savedInventory.clearDomainEvents();
+        }
+        return savedInventory;
     }
+
     @Override
     public Optional<Inventory> findById(Long id) {
         return jpaRepository.findById(id)
-                .map(InventoryPersistenceEntity::toDomainModel);
+                .map(InventoryPersistenceAssembler::toDomainFromPersistence);
     }
+
+    @Override
+    public Optional<Inventory> findByName(String name) {
+        return jpaRepository.findByName(name)
+                .map(InventoryPersistenceAssembler::toDomainFromPersistence);
+    }
+
     @Override
     public List<Inventory> findAll() {
         return jpaRepository.findAll().stream()
-                .map(InventoryPersistenceEntity::toDomainModel)
+                .map(InventoryPersistenceAssembler::toDomainFromPersistence)
                 .toList();
+    }
+
+    @Override
+    public List<Inventory> findAllByStatus(InventoryStatus status) {
+        return jpaRepository.findAllByStatus(status).stream()
+                .map(InventoryPersistenceAssembler::toDomainFromPersistence)
+                .toList();
+    }
+
+    @Override
+    public boolean existsByName(String name) {
+        return jpaRepository.countByName(name) > 0;
     }
 }

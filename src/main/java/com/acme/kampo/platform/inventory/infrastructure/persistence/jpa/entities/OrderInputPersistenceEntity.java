@@ -6,20 +6,25 @@ import com.acme.kampo.platform.inventory.domain.model.aggregates.OrderInput;
 import com.acme.kampo.platform.inventory.domain.model.command.OrderInputCommand;
 import com.acme.kampo.platform.inventory.domain.model.command.ReceiveInputCommand;
 import com.acme.kampo.platform.inventory.domain.model.enums.OrderStatus;
+import com.acme.kampo.platform.shared.infrastructure.persistence.jpa.entities.AuditableAbstractPersistenceEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.Setter;
 
 /**
- * JPA persistence entity for the {@link OrderInput} aggregate.
+ * JPA persistence entity for the OrderInput aggregate.
+ *
+ * <p>Extends {@link AuditableAbstractPersistenceEntity} to inherit {@code id},
+ * {@code createdAt} and {@code updatedAt}.</p>
+ *
+ * <p>Translation handled by
+ * {@link com.acme.kampo.platform.inventory.infrastructure.persistence.jpa.assemblers.OrderInputPersistenceAssembler}.</p>
  */
+@Setter
 @Getter
 @Entity
 @Table(name = "order_inputs")
-public class OrderInputPersistenceEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class OrderInputPersistenceEntity extends AuditableAbstractPersistenceEntity {
 
     @Column(name = "inventory_id", nullable = false)
     private Long inventoryId;
@@ -40,49 +45,6 @@ public class OrderInputPersistenceEntity {
     @Column(name = "received_at")
     private LocalDateTime receivedAt;
 
-    protected OrderInputPersistenceEntity() {}
+    public OrderInputPersistenceEntity() {}
 
-    private OrderInputPersistenceEntity(Long id, Long inventoryId, Long supplierId,
-                                        int quantity, OrderStatus status,
-                                        LocalDateTime orderedAt, LocalDateTime receivedAt) {
-        this.id          = id;
-        this.inventoryId = inventoryId;
-        this.supplierId  = supplierId;
-        this.quantity    = quantity;
-        this.status      = status;
-        this.orderedAt   = orderedAt;
-        this.receivedAt  = receivedAt;
-    }
-
-    // ── Mapping ───────────────────────────────────────────────────────────────
-
-    /**
-     * Reconstructs an {@link OrderInput} aggregate from this persistence entity.
-     * If the order was already received, applies the receive transition on top.
-     */
-    public OrderInput toDomainModel() {
-        var orderCmd = new OrderInputCommand(inventoryId, supplierId, quantity);
-        var order = new OrderInput(orderCmd);
-        order.clearDomainEvents();
-        order.reconstitute(id);
-
-        // Re-apply state transitions that happened after creation
-        if (status == OrderStatus.RECEIVED && receivedAt != null) {
-            order.receive(new ReceiveInputCommand(id, receivedAt));
-        }
-        return order;
-    }
-
-    public static OrderInputPersistenceEntity fromDomainModel(OrderInput order) {
-        Long rawId = (order.getId() != null) ? order.getId().getValue() : null;
-        return new OrderInputPersistenceEntity(
-                rawId,
-                order.getInventoryId().getValue(),
-                order.getSupplierId().getValue(),
-                order.getQuantity(),
-                order.getStatus(),
-                order.getOrderedAt(),
-                order.getReceivedAt()
-        );
-    }
 }

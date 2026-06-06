@@ -2,20 +2,25 @@ package com.acme.kampo.platform.inventory.infrastructure.persistence.jpa.entitie
 
 import com.acme.kampo.platform.inventory.domain.model.aggregates.Supplier;
 import com.acme.kampo.platform.inventory.domain.model.command.AddSupplierCommand;
+import com.acme.kampo.platform.shared.infrastructure.persistence.jpa.entities.AuditableAbstractPersistenceEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.Setter;
 
 /**
- * JPA persistence entity for the {@link Supplier} aggregate.
+ * JPA persistence entity for the Supplier aggregate.
+ *
+ * <p>Extends {@link AuditableAbstractPersistenceEntity} to inherit {@code id},
+ * {@code createdAt} and {@code updatedAt}.</p>
+ *
+ * <p>Translation handled by
+ * {@link com.acme.kampo.platform.inventory.infrastructure.persistence.jpa.assemblers.SupplierPersistenceAssembler}.</p>
  */
+@Setter
 @Getter
 @Entity
 @Table(name = "suppliers")
-public class SupplierPersistenceEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class SupplierPersistenceEntity extends AuditableAbstractPersistenceEntity {
 
     @Column(nullable = false)
     private String name;
@@ -26,32 +31,6 @@ public class SupplierPersistenceEntity {
     @Column(nullable = false, length = 100)
     private String email;
 
-    protected SupplierPersistenceEntity() {}
-
-    private SupplierPersistenceEntity(Long id, String name, String contact, String email) {
-        this.id      = id;
-        this.name    = name;
-        this.contact = contact;
-        this.email   = email;
-    }
-
-    // ── Mapping ───────────────────────────────────────────────────────────────
-
-    public Supplier toDomainModel() {
-        var command = new AddSupplierCommand(name, contact, email);
-        var supplier = new Supplier(command);
-        supplier.clearDomainEvents();
-        return supplier.reconstitute(id);
-    }
-
-    public static SupplierPersistenceEntity fromDomainModel(Supplier supplier) {
-        Long rawId = (supplier.getId() != null) ? supplier.getId().getValue() : null;
-        return new SupplierPersistenceEntity(
-                rawId,
-                supplier.getName(),
-                supplier.getContact(),
-                supplier.getEmail()
-        );
-    }
+    public SupplierPersistenceEntity() {}
 
 }

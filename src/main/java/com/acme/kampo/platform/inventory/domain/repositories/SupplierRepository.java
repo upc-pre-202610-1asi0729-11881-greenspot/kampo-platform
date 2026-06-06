@@ -40,4 +40,8 @@ public interface SupplierRepository {
      * @return a list of all suppliers, possibly empty
      */
     List<Supplier> findAll();
+
+    Optional<Supplier> findByEmail(String email);
+
+    boolean existsByEmail(String email);
 }

@@ -1,17 +1,23 @@
 package com.acme.kampo.platform.inventory.interfaces.rest.resources;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
- * Inbound DTO for creating a new Inventory item.
+ * Inbound resource for creating a new Inventory item.
  * Received as JSON body in POST /api/v1/inventory.
- *
- * @param name     human-readable name of the item
- * @param quantity initial stock quantity
- * @param unit     unit of measure (e.g. "kg", "L", "units")
- * @param minStock minimum stock threshold
  */
+@Schema(description = "Resource to create a new inventory item")
 public record CreateInventoryResource(
+
+        @Schema(description = "Human-readable name of the inventory item", example = "Fertilizante NPK")
         String name,
+
+        @Schema(description = "Initial stock quantity — must be zero or positive", example = "100")
         int quantity,
+
+        @Schema(description = "Unit of measure", example = "kg")
         String unit,
+
+        @Schema(description = "Minimum stock threshold — triggers LOW_STOCK when quantity reaches this value", example = "20")
         int minStock
 ) {}

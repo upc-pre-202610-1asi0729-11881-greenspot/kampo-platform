@@ -5,16 +5,21 @@ import com.acme.kampo.platform.inventory.interfaces.events.InventoryCreatedInteg
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 /**
- * Listens for {@link InventoryCreatedEvent} domain events and republishes
- * them as {@link InventoryCreatedIntegrationEvent} for cross-context consumers.
+ * Internal application-layer handler for the {@link InventoryCreatedEvent} domain event.
  *
- * <p>This is the anti-corruption boundary between the domain event model
- * and the integration event model — other bounded contexts depend only on
- * the integration event, never on the domain event directly.
+ * <p>Translates the internal domain event into a {@link InventoryCreatedIntegrationEvent}
+ * and re-publishes it on the Spring event bus. This is the only place where a domain
+ * event crosses the boundary between the domain layer and the published language of the
+ * {@code inventory} bounded context.</p>
+ *
+ * <p>Other bounded contexts must subscribe to {@link InventoryCreatedIntegrationEvent}
+ * (from {@code inventory.interfaces.events}), never to the internal
+ * {@link InventoryCreatedEvent}.</p>
  */
-@Component
+@Service("inventoryInventoryCreatedEventHandler")
 public class InventoriesInventoryCreatedEventHandler {
 
     private final ApplicationEventPublisher eventPublisher;
@@ -23,13 +28,14 @@ public class InventoriesInventoryCreatedEventHandler {
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * Receives the internal {@link InventoryCreatedEvent} and publishes the
+     * corresponding {@link InventoryCreatedIntegrationEvent} for cross-context consumers.
+     *
+     * @param event the internal domain event carrying the saved inventory
+     */
     @EventListener
     public void on(InventoryCreatedEvent event) {
-        eventPublisher.publishEvent(new InventoryCreatedIntegrationEvent(
-                event.inventoryId(),
-                event.name(),
-                event.quantity(),
-                event.unit()
-        ));
+        eventPublisher.publishEvent(InventoryCreatedIntegrationEvent.from(event.inventory()));
     }
 }

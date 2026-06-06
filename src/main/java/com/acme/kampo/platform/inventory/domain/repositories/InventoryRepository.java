@@ -1,6 +1,7 @@
 package com.acme.kampo.platform.inventory.domain.repositories;
 
 import com.acme.kampo.platform.inventory.domain.model.aggregates.Inventory;
+import com.acme.kampo.platform.inventory.domain.model.enums.InventoryStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,5 +38,11 @@ public interface InventoryRepository {
      * @return a list of all inventory items, possibly empty
      */
     List<Inventory> findAll();
+
+    Optional<Inventory> findByName(String name);
+
+    List<Inventory> findAllByStatus(InventoryStatus status);
+
+    boolean existsByName(String name);
 
 }
