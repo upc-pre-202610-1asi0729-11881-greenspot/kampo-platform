@@ -1,0 +1,40 @@
+package com.acme.kampo.platform.financial.insfrastructure.persistence.jpa.entities;
+
+
+import com.acme.kampo.platform.financial.insfrastructure.persistence.jpa.embeddables.MoneyPersistenceEmbeddable;
+import com.acme.kampo.platform.shared.infrastructure.persistence.jpa.entities.AuditableAbstractPersistenceEntity;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.LocalDate;
+
+/**
+ * JPA persistence entity for the {@link com.acme.kampo.platform.financial.domain.model.aggregates.Income} aggregate.
+ * Translation handled by {@link com.acme.kampo.platform.financial.insfrastructure.persistence.jpa.entities.IncomePersistenceEntity}.
+ */
+@Setter
+@Getter
+@Entity
+@Table(name = "incomes")
+public class IncomePersistenceEntity extends AuditableAbstractPersistenceEntity {
+
+    @Column(nullable = false)
+    private String description;
+
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "amount",   column = @Column(name = "amount",   nullable = false, precision = 19, scale = 2)),
+            @AttributeOverride(name = "currency", column = @Column(name = "currency", nullable = false, length = 3))
+    })
+    private MoneyPersistenceEmbeddable amount;
+
+    @Column(name = "fundo_id", nullable = false)
+    private Long fundoId;
+
+    @Column(nullable = false)
+    private LocalDate date;
+
+    public IncomePersistenceEntity() {}
+
+}
