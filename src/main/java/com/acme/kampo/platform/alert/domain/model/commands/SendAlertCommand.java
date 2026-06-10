@@ -3,7 +3,12 @@ package com.acme.kampo.platform.alert.domain.model.commands;
 import com.acme.kampo.platform.alert.domain.model.enums.AlertPriority;
 
 /**
- * Command to send a new alert.
+ * Command to send (create) a new alert triggered by a rule violation.
+ *
+ * @param message     human-readable description of what occurred
+ * @param priority    urgency level of the alert
+ * @param fieldId     the field where the condition was detected
+ * @param alertRuleId the rule that triggered this alert
  */
 public record SendAlertCommand(
         String message,

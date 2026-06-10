@@ -7,7 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * JPA persistence entity for the Alert aggregate.
+ * JPA persistence entity for the {@link com.acme.kampo.platform.alert.domain.model.aggregates.Alert} aggregate.
+ * Extends {@link AuditableAbstractPersistenceEntity} to inherit {@code id}, {@code createdAt} and {@code updatedAt}.
+ * Translation handled by {@link com.acme.kampo.platform.alert.infrastructure.persistence.jpa.assemblers.AlertPersistenceAssembler}.
  */
 @Setter
 @Getter
@@ -19,7 +21,7 @@ public class AlertPersistenceEntity extends AuditableAbstractPersistenceEntity {
     private String message;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 10)
     private AlertPriority priority;
 
     @Column(name = "is_read", nullable = false)
@@ -32,4 +34,5 @@ public class AlertPersistenceEntity extends AuditableAbstractPersistenceEntity {
     private Long alertRuleId;
 
     public AlertPersistenceEntity() {}
+
 }

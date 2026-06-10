@@ -4,31 +4,30 @@ import com.acme.kampo.platform.alert.domain.model.aggregates.AlertRule;
 import com.acme.kampo.platform.alert.infrastructure.persistence.jpa.entities.AlertRulePersistenceEntity;
 
 /**
- * Assembler that converts between {@link AlertRule} and {@link AlertRulePersistenceEntity}.
- * Static utility class — no state, no Spring bean needed.
+ * Static assembler between the {@link AlertRule} aggregate and its JPA persistence representation.
  */
-public class AlertRulePersistenceAssembler {
+public final class AlertRulePersistenceAssembler {
 
     private AlertRulePersistenceAssembler() {}
-
-    public static AlertRulePersistenceEntity toPersistenceFromDomain(AlertRule alertRule) {
-        var entity = new AlertRulePersistenceEntity();
-        if (alertRule.getId() != null)
-            entity.setId(alertRule.getId().getValue());
-        entity.setReadingType(alertRule.getReadingType());
-        entity.setConditionOperator(alertRule.getConditionOperator());
-        entity.setSeverity(alertRule.getSeverity());
-        entity.setFieldId(alertRule.getFieldId().getValue());
-        return entity;
-    }
 
     public static AlertRule toDomainFromPersistence(AlertRulePersistenceEntity entity) {
         return new AlertRule(
                 entity.getId(),
                 entity.getReadingType(),
                 entity.getConditionOperator(),
+                entity.getThreshold(),
                 entity.getSeverity(),
-                entity.getFieldId()
-        );
+                entity.getFieldId());
+    }
+
+    public static AlertRulePersistenceEntity toPersistenceFromDomain(AlertRule rule) {
+        var entity = new AlertRulePersistenceEntity();
+        entity.setId(rule.getId() != null ? rule.getId().getValue() : null);
+        entity.setReadingType(rule.getReadingType());
+        entity.setConditionOperator(rule.getConditionOperator());
+        entity.setThreshold(rule.getThreshold());
+        entity.setSeverity(rule.getSeverity());
+        entity.setFieldId(rule.getFieldId().getValue());
+        return entity;
     }
 }

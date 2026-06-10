@@ -1,7 +1,9 @@
 package com.acme.kampo.platform.alert.domain.model.commands;
 
 /**
- * Command to mark an alert as read.
+ * Command to mark an existing alert as read.
+ *
+ * @param alertId the ID of the alert to mark as read
  */
 public record MarkAlertReadCommand(Long alertId) {
     public MarkAlertReadCommand {
