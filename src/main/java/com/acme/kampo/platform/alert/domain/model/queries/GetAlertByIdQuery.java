@@ -1,11 +1,14 @@
 package com.acme.kampo.platform.alert.domain.model.queries;
 
+import com.acme.kampo.platform.alert.domain.model.valueobjects.AlertId;
+
 /**
- * Query to retrieve a single Alert by its ID.
+ * Query to retrieve a single Alert by its typed identity.
+ *
+ * @param alertId the alert identity
  */
-public record GetAlertByIdQuery(Long alertId) {
+public record GetAlertByIdQuery(AlertId alertId) {
     public GetAlertByIdQuery {
-        if (alertId == null || alertId <= 0)
-            throw new IllegalArgumentException("alertId must be positive");
+        if (alertId == null) throw new IllegalArgumentException("alertId must not be null");
     }
 }

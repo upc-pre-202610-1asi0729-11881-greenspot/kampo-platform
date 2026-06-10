@@ -1,6 +1,8 @@
 package com.acme.kampo.platform.alert.infrastructure.persistence.jpa.adapters;
 
 import com.acme.kampo.platform.alert.domain.model.aggregates.Alert;
+import com.acme.kampo.platform.alert.domain.model.valueobjects.AlertId;
+import com.acme.kampo.platform.alert.domain.model.valueobjects.FieldId;
 import com.acme.kampo.platform.alert.domain.repositories.AlertRepository;
 import com.acme.kampo.platform.alert.infrastructure.persistence.jpa.assemblers.AlertPersistenceAssembler;
 import com.acme.kampo.platform.alert.infrastructure.persistence.jpa.repositories.AlertJpaRepository;
@@ -12,37 +14,51 @@ import java.util.Optional;
 
 /**
  * Adapter implementing the domain {@link AlertRepository} contract using Spring Data JPA.
+ * Publishes domain events after a new Alert is persisted.
  */
 @Repository
 public class AlertRepositoryImpl implements AlertRepository {
 
-    private final AlertJpaRepository jpaRepository;
+    private final AlertJpaRepository        jpaRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public AlertRepositoryImpl(AlertJpaRepository jpaRepository,
                                ApplicationEventPublisher eventPublisher) {
-        this.jpaRepository = jpaRepository;
+        this.jpaRepository  = jpaRepository;
         this.eventPublisher = eventPublisher;
     }
 
     @Override
     public Alert save(Alert alert) {
-        boolean isNew = alert.getId() == null;
-        var entity = AlertPersistenceAssembler.toPersistenceFromDomain(alert);
-        var savedEntity = jpaRepository.save(entity);
-        var savedAlert = AlertPersistenceAssembler.toDomainFromPersistence(savedEntity);
+        boolean isNew  = alert.getId() == null;
+        var entity     = AlertPersistenceAssembler.toPersistenceFromDomain(alert);
+        var saved      = jpaRepository.save(entity);
+        var savedAlert = AlertPersistenceAssembler.toDomainFromPersistence(saved);
         if (isNew) {
-            alert.reconstitute(savedEntity.getId());
-            alert.domainEvents().forEach(eventPublisher::publishEvent);
-            alert.clearDomainEvents();
+            savedAlert.domainEvents().forEach(eventPublisher::publishEvent);
+            savedAlert.clearDomainEvents();
         }
         return savedAlert;
     }
 
     @Override
-    public Optional<Alert> findById(Long id) {
-        return jpaRepository.findById(id)
+    public Optional<Alert> findById(AlertId id) {
+        return jpaRepository.findById(id.getValue())
                 .map(AlertPersistenceAssembler::toDomainFromPersistence);
+    }
+
+    @Override
+    public List<Alert> findByFieldId(FieldId fieldId) {
+        return jpaRepository.findByFieldId(fieldId.getValue()).stream()
+                .map(AlertPersistenceAssembler::toDomainFromPersistence)
+                .toList();
+    }
+
+    @Override
+    public List<Alert> findAllUnread() {
+        return jpaRepository.findAllUnread().stream()
+                .map(AlertPersistenceAssembler::toDomainFromPersistence)
+                .toList();
     }
 
     @Override
@@ -53,16 +69,7 @@ public class AlertRepositoryImpl implements AlertRepository {
     }
 
     @Override
-    public List<Alert> findAllByFieldId(Long fieldId) {
-        return jpaRepository.findAllByFieldId(fieldId).stream()
-                .map(AlertPersistenceAssembler::toDomainFromPersistence)
-                .toList();
-    }
-
-    @Override
-    public List<Alert> findAllUnread() {
-        return jpaRepository.findAllUnread().stream()
-                .map(AlertPersistenceAssembler::toDomainFromPersistence)
-                .toList();
+    public boolean existsById(AlertId id) {
+        return jpaRepository.existsById(id.getValue());
     }
 }

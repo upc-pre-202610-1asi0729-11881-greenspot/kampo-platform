@@ -6,13 +6,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 /**
- * Spring Data JPA repository for AlertRule persistence entities.
+ * Spring Data repository for alert rule persistence entities.
  */
 @Repository
 public interface AlertRuleJpaRepository extends JpaRepository<AlertRulePersistenceEntity, Long> {
 
-    @Query("select count(r) from AlertRulePersistenceEntity r where r.fieldId = :fieldId and r.readingType = :readingType")
-    long countByFieldIdAndReadingType(@Param("fieldId") Long fieldId,
-                                      @Param("readingType") String readingType);
+    @Query("select r from AlertRulePersistenceEntity r where r.fieldId = :fieldId")
+    List<AlertRulePersistenceEntity> findByFieldId(@Param("fieldId") Long fieldId);
 }

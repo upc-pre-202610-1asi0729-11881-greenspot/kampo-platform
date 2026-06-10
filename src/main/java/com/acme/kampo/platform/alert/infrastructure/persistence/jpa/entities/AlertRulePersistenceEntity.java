@@ -9,7 +9,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * JPA persistence entity for the AlertRule aggregate.
+ * JPA persistence entity for the {@link com.acme.kampo.platform.alert.domain.model.aggregates.AlertRule} aggregate.
+ * Extends {@link AuditableAbstractPersistenceEntity} to inherit {@code id}, {@code createdAt} and {@code updatedAt}.
+ * Translation handled by {@link com.acme.kampo.platform.alert.infrastructure.persistence.jpa.assemblers.AlertRulePersistenceAssembler}.
  */
 @Setter
 @Getter
@@ -25,6 +27,9 @@ public class AlertRulePersistenceEntity extends AuditableAbstractPersistenceEnti
     @Column(name = "condition_operator", nullable = false, length = 20)
     private ConditionOperator conditionOperator;
 
+    @Column(nullable = false)
+    private Double threshold;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private SeverityLevel severity;
@@ -33,4 +38,5 @@ public class AlertRulePersistenceEntity extends AuditableAbstractPersistenceEnti
     private Long fieldId;
 
     public AlertRulePersistenceEntity() {}
+
 }

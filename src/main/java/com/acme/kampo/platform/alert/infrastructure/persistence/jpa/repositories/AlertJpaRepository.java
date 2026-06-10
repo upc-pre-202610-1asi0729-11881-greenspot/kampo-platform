@@ -9,13 +9,13 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 /**
- * Spring Data JPA repository for Alert persistence entities.
+ * Spring Data repository for alert persistence entities.
  */
 @Repository
 public interface AlertJpaRepository extends JpaRepository<AlertPersistenceEntity, Long> {
 
     @Query("select a from AlertPersistenceEntity a where a.fieldId = :fieldId")
-    List<AlertPersistenceEntity> findAllByFieldId(@Param("fieldId") Long fieldId);
+    List<AlertPersistenceEntity> findByFieldId(@Param("fieldId") Long fieldId);
 
     @Query("select a from AlertPersistenceEntity a where a.isRead = false")
     List<AlertPersistenceEntity> findAllUnread();

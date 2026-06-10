@@ -12,7 +12,7 @@ public record AlertResource(
         @Schema(description = "Unique identifier", example = "1")
         Long id,
 
-        @Schema(description = "Alert message", example = "Temperature exceeded threshold")
+        @Schema(description = "Alert message", example = "Temperatura crítica detectada: 38°C")
         String message,
 
         @Schema(description = "Alert priority", example = "HIGH")
@@ -21,9 +21,9 @@ public record AlertResource(
         @Schema(description = "Whether the alert has been read", example = "false")
         boolean isRead,
 
-        @Schema(description = "ID of the field that triggered the alert", example = "1")
+        @Schema(description = "ID of the field where the condition was detected", example = "1")
         Long fieldId,
 
-        @Schema(description = "ID of the alert rule that triggered the alert", example = "1")
+        @Schema(description = "ID of the alert rule that triggered this alert", example = "1")
         Long alertRuleId
 ) {}

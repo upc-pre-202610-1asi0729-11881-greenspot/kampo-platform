@@ -11,75 +11,84 @@ import com.acme.kampo.platform.shared.domain.model.aggregates.AbstractDomainAggr
 import lombok.Getter;
 
 /**
- * Aggregate root that represents a triggered alert.
+ * Aggregate root representing a triggered alert for a field.
  *
- * <p>Responsible for:
- * <ul>
- *   <li>Tracking the alert message, priority and read state.</li>
- *   <li>Publishing {@link AlertSentEvent} upon creation.</li>
- * </ul>
+ * <p>An alert is created when a sensor reading violates an {@link AlertRule}.
+ * It starts unread and can be marked as read via {@link #markAsRead(MarkAlertReadCommand)}.
+ *
+ * <p>Publishes {@link AlertSentEvent} on creation so other bounded contexts
+ * can react (e.g. send a push notification or log the incident).</p>
  */
-@Getter
+
 public class Alert extends AbstractDomainAggregateRoot<Alert> {
 
-    private AlertId id;
-    private String message;
+    @Getter
+    private AlertId       id;
+    @Getter
+    private String        message;
+    @Getter
     private AlertPriority priority;
-    private boolean isRead;
-    private FieldId fieldId;
-    private AlertRuleId alertRuleId;
+    private boolean       isRead;
+    @Getter
+    private FieldId       fieldId;
+    @Getter
+    private AlertRuleId   alertRuleId;
 
     /** Required by JPA proxy — do not use directly. */
     protected Alert() {}
 
     /**
-     * Reconstitution constructor — rebuilds the aggregate from persisted values
-     * without triggering domain logic or events.
-     * Used exclusively by {@link com.acme.kampo.platform.alert.infrastructure.persistence.jpa.assemblers.AlertPersistenceAssembler}.
+     * Reconstitution constructor — rebuilds from persisted values without
+     * triggering any domain logic or events.
+     * Used exclusively by the persistence assembler.
      */
     public Alert(Long id, String message, AlertPriority priority,
                  boolean isRead, Long fieldId, Long alertRuleId) {
-        this.id = AlertId.of(id);
-        this.message = message;
-        this.priority = priority;
-        this.isRead = isRead;
-        this.fieldId = FieldId.of(fieldId);
+        this.id          = AlertId.of(id);
+        this.message     = message;
+        this.priority    = priority;
+        this.isRead      = isRead;
+        this.fieldId     = FieldId.of(fieldId);
         this.alertRuleId = AlertRuleId.of(alertRuleId);
     }
 
     /**
-     * Creates a new Alert from a {@link SendAlertCommand}.
-     * Registers an {@link AlertSentEvent} to be published after save.
+     * Creation constructor — builds from a {@link SendAlertCommand}.
+     * Alert starts as unread and registers an {@link AlertSentEvent}.
+     *
+     * @param command the send command carrying message, priority, field and rule
      */
     public Alert(SendAlertCommand command) {
-        this.message = command.message();
-        this.priority = command.priority();
-        this.isRead = false;
-        this.fieldId = FieldId.of(command.fieldId());
+        this.message     = command.message();
+        this.priority    = command.priority();
+        this.isRead      = false;
+        this.fieldId     = FieldId.of(command.fieldId());
         this.alertRuleId = AlertRuleId.of(command.alertRuleId());
         registerDomainEvent(new AlertSentEvent(this));
     }
 
-    /**
-     * Reconstitutes an Alert from persistence, binding its typed identity.
-     *
-     * @param rawId the surrogate key assigned by the database
-     * @return this instance (fluent)
-     */
-    public Alert reconstitute(Long rawId) {
-        this.id = AlertId.of(rawId);
-        return this;
-    }
+    // ── Behaviour ─────────────────────────────────────────────────────────────
 
     /**
      * Marks this alert as read.
      *
-     * @param command the mark alert read command
+     * @param command the mark-read command (carries the alertId for validation)
      * @throws IllegalStateException if the alert is already read
      */
     public void markAsRead(MarkAlertReadCommand command) {
-        if (this.isRead)
-            throw new IllegalStateException("Alert is already marked as read");
+        if (isRead)
+            throw new IllegalStateException(
+                    "Alert %d is already marked as read".formatted(
+                            id != null ? id.getValue() : 0));
         this.isRead = true;
+    }
+
+    // ── Getters ───────────────────────────────────────────────────────────────
+
+    public boolean       getIsRead()      { return isRead; }
+
+    public Alert reconstitute(Long rawId) {
+        this.id = AlertId.of(rawId);
+        return this;
     }
 }

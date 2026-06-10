@@ -14,15 +14,18 @@ public record AlertRuleResource(
         @Schema(description = "Unique identifier", example = "1")
         Long id,
 
-        @Schema(description = "Type of reading monitored", example = "TEMPERATURE")
+        @Schema(description = "Type of sensor reading monitored", example = "TEMPERATURE")
         ReadingType readingType,
 
-        @Schema(description = "Condition operator", example = "GREATER_THAN")
+        @Schema(description = "Comparison operator", example = "GREATER_THAN")
         ConditionOperator conditionOperator,
+
+        @Schema(description = "Threshold value", example = "35.0")
+        Double threshold,
 
         @Schema(description = "Severity level", example = "HIGH")
         SeverityLevel severity,
 
-        @Schema(description = "ID of the field being monitored", example = "1")
+        @Schema(description = "ID of the monitored field", example = "1")
         Long fieldId
 ) {}
