@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @EnableJpaAuditing
 @SpringBootApplication
-public class KampoPlatformApplication {
+public class    KampoPlatformApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(KampoPlatformApplication.class, args);
