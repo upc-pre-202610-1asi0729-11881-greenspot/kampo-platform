@@ -1,104 +1,189 @@
 @startuml
-title Class Diagram - Alert Management (Backend)
+title Class Diagram - Alert Management (Backend - Spring Boot)
 left to right direction
 
-package "com.acme.kampo.platform"{
-    package "alert"{
-        package "interfaces.rest"{
-            class AlertController <<controller>>{
+package "com.acme.kampo.platform" {
+
+    package "shared" {
+        package "domain.model.aggregates" {
+            abstract class AbstractDomainAggregateRoot <<base aggregate>>
+        }
+        package "infrastructure.persistence.jpa.entities" {
+            abstract class AuditableAbstractPersistenceEntity <<base entity>>
+        }
+        package "application.result" {
+            class Result<T,E> <<sealed interface>>
+            class ApplicationError <<record>>
+        }
+    }
+
+    package "alert" {
+
+        ' ── INTERFACES LAYER ──────────────────────────────────────────────────
+        package "interfaces.rest" {
+            class AlertController <<controller>> {
                 -alertCommandService: AlertCommandService
                 -alertQueryService: AlertQueryService
                 +createAlertRule(resource: CreateAlertRuleResource): ResponseEntity<?>
-                +evaluateCondition(alertRuleId: Long): ResponseEntity<?>
+                +getAlertRuleById(alertRuleId: Long): ResponseEntity<?>
+                +getAllAlertRules(): ResponseEntity<?>
+                +evaluateAlertRule(alertRuleId: Long, resource: EvaluateAlertRuleResource): ResponseEntity<?>
                 +sendAlert(resource: CreateAlertResource): ResponseEntity<?>
                 +markAlertRead(alertId: Long): ResponseEntity<?>
+                +getAlertById(alertId: Long): ResponseEntity<?>
                 +getAllAlerts(): ResponseEntity<?>
-                +getAllAlertRules(): ResponseEntity<?>
             }
         }
-        package "interfaces.acl"{
-            interface AlertContextFacade <<facade>>{
-                +createAlertRule(): Long
-                +fetchAlertRuleIdBy(fieldId: Long): Long
+
+        package "interfaces.rest.resources" {
+            class CreateAlertRuleResource <<resource>> {
+                +readingType: ReadingType
+                +conditionOperator: ConditionOperator
+                +threshold: Double
+                +severity: SeverityLevel
+                +fieldId: Long
+            }
+            class AlertRuleResource <<resource>> {
+                +id: Long
+                +readingType: ReadingType
+                +conditionOperator: ConditionOperator
+                +threshold: Double
+                +severity: SeverityLevel
+                +fieldId: Long
+            }
+            class CreateAlertResource <<resource>> {
+                +message: String
+                +priority: AlertPriority
+                +fieldId: Long
+                +alertRuleId: Long
+            }
+            class AlertResource <<resource>> {
+                +id: Long
+                +message: String
+                +priority: AlertPriority
+                +isRead: boolean
+                +fieldId: Long
+                +alertRuleId: Long
+            }
+            class EvaluateAlertRuleResource <<resource>> {
+                +currentValue: Double
             }
         }
-        package "interfaces.events"{
-            class AlertSentIntegrationEvent <<integration event>>{
+
+        package "interfaces.rest.transform" {
+            class AlertResourceAssembler <<assembler>> {
+                +toCommand(resource: CreateAlertRuleResource): ConfigureAlertRuleCommand
+                +toCommand(resource: CreateAlertResource): SendAlertCommand
+                +toQuery(alertRuleId: Long, resource: EvaluateAlertRuleResource): EvaluateAlertRuleQuery
+                +toResource(rule: AlertRule): AlertRuleResource
+                +toResource(alert: Alert): AlertResource
             }
         }
-        package "application.commandservices"{
-            interface AlertCommandService <<service>>{
+
+        package "interfaces.acl" {
+            interface AlertContextFacade <<facade>> {
+                +createAlertRule(readingType: String, conditionOperator: String, threshold: Double, severity: String, fieldId: Long): Long
+                +fetchAlertRuleIdByFieldId(fieldId: Long): Optional<Long>
+            }
+        }
+
+        package "interfaces.events" {
+            class AlertSentIntegrationEvent <<integration event>> {
+                +alertId: Long
+                +message: String
+                +priority: AlertPriority
+                +fieldId: Long
+                +alertRuleId: Long
+                +from(alert: Alert): AlertSentIntegrationEvent
+            }
+        }
+
+        ' ── APPLICATION LAYER ─────────────────────────────────────────────────
+        package "application.commandservices" {
+            interface AlertCommandService <<service>> {
                 +handle(command: ConfigureAlertRuleCommand): Result<AlertRule, ApplicationError>
                 +handle(command: SendAlertCommand): Result<Alert, ApplicationError>
                 +handle(command: MarkAlertReadCommand): Result<Alert, ApplicationError>
-                +handle(command: EvaluateConditionCommand): Result<Boolean, ApplicationError>
             }
         }
-        package "application.queryservices"{
-            interface AlertQueryService <<service>>{
+
+        package "application.queryservices" {
+            interface AlertQueryService <<service>> {
                 +handle(query: GetAlertByIdQuery): Optional<Alert>
                 +handle(query: GetAllAlertsQuery): List<Alert>
                 +handle(query: GetAlertRuleByIdQuery): Optional<AlertRule>
                 +handle(query: GetAllAlertRulesQuery): List<AlertRule>
+                +handle(query: EvaluateAlertRuleQuery): Result<Boolean, ApplicationError>
             }
         }
-        package "application.internal.commandservices"{
-            class AlertCommandServiceImpl <<service>>{
+
+        package "application.internal.commandservices" {
+            class AlertCommandServiceImpl <<service>> {
                 -alertRepository: AlertRepository
                 -alertRuleRepository: AlertRuleRepository
                 +handle(command: ConfigureAlertRuleCommand): Result<AlertRule, ApplicationError>
                 +handle(command: SendAlertCommand): Result<Alert, ApplicationError>
                 +handle(command: MarkAlertReadCommand): Result<Alert, ApplicationError>
-                +handle(command: EvaluateConditionCommand): Result<Boolean, ApplicationError>
             }
         }
-        package "application.internal.queryservices"{
-            class AlertQueryServiceImpl <<service>>{
+
+        package "application.internal.queryservices" {
+            class AlertQueryServiceImpl <<service>> {
                 -alertRepository: AlertRepository
                 -alertRuleRepository: AlertRuleRepository
                 +handle(query: GetAlertByIdQuery): Optional<Alert>
                 +handle(query: GetAllAlertsQuery): List<Alert>
                 +handle(query: GetAlertRuleByIdQuery): Optional<AlertRule>
                 +handle(query: GetAllAlertRulesQuery): List<AlertRule>
+                +handle(query: EvaluateAlertRuleQuery): Result<Boolean, ApplicationError>
             }
         }
-        package "application.internal.eventhandlers"{
-            class AlertSentEventHandler <<event handler>>{
+
+        package "application.internal.eventhandlers" {
+            class AlertSentEventHandler <<event handler>> {
                 -eventPublisher: ApplicationEventPublisher
                 +on(event: AlertSentEvent): void
             }
         }
-        package "application.acl"{
-            class AlertContextFacadeImpl <<facade>>{
+
+        package "application.acl" {
+            class AlertContextFacadeImpl <<facade>> {
                 -alertCommandService: AlertCommandService
                 -alertQueryService: AlertQueryService
-                +createAlertRule(): Long
-                +fetchAlertRuleIdBy(fieldId: Long): Long
+                +createAlertRule(readingType: String, conditionOperator: String, threshold: Double, severity: String, fieldId: Long): Long
+                +fetchAlertRuleIdByFieldId(fieldId: Long): Optional<Long>
             }
         }
-        package "domain.model.aggregates"{
-            class AlertRule <<aggregate>>{
+
+        ' ── DOMAIN LAYER ──────────────────────────────────────────────────────
+        package "domain.model.aggregates" {
+            class AlertRule <<aggregate>> {
                 -id: AlertRuleId
                 -readingType: ReadingType
                 -conditionOperator: ConditionOperator
+                -threshold: Double
                 -severity: SeverityLevel
                 -fieldId: FieldId
-                +create(command: ConfigureAlertRuleCommand): AlertRule
-                +evaluate(command: EvaluateConditionCommand): boolean
+                +AlertRule(command: ConfigureAlertRuleCommand)
+                +AlertRule(id: Long, readingType: ReadingType, conditionOperator: ConditionOperator, threshold: Double, severity: SeverityLevel, fieldId: Long)
+                +evaluate(currentValue: double): boolean
                 +getId(): AlertRuleId
                 +getReadingType(): ReadingType
                 +getConditionOperator(): ConditionOperator
+                +getThreshold(): Double
                 +getSeverity(): SeverityLevel
                 +getFieldId(): FieldId
             }
-            class Alert <<aggregate>>{
+
+            class Alert <<aggregate>> {
                 -id: AlertId
                 -message: String
                 -priority: AlertPriority
                 -isRead: boolean
                 -fieldId: FieldId
                 -alertRuleId: AlertRuleId
-                +create(command: SendAlertCommand): Alert
+                +Alert(command: SendAlertCommand)
+                +Alert(id: Long, message: String, priority: AlertPriority, isRead: boolean, fieldId: Long, alertRuleId: Long)
                 +markAsRead(command: MarkAlertReadCommand): void
                 +getId(): AlertId
                 +getMessage(): String
@@ -108,11 +193,53 @@ package "com.acme.kampo.platform"{
                 +getAlertRuleId(): AlertRuleId
             }
         }
-        package "domain.model.enums"{
+
+        package "domain.model.commands" {
+            class ConfigureAlertRuleCommand <<command>> {
+                +readingType: ReadingType
+                +conditionOperator: ConditionOperator
+                +threshold: Double
+                +severity: SeverityLevel
+                +fieldId: Long
+            }
+            class SendAlertCommand <<command>> {
+                +message: String
+                +priority: AlertPriority
+                +fieldId: Long
+                +alertRuleId: Long
+            }
+            class MarkAlertReadCommand <<command>> {
+                +alertId: Long
+            }
+        }
+
+        package "domain.model.queries" {
+            class GetAlertByIdQuery <<query>> {
+                +alertId: AlertId
+            }
+            class GetAllAlertsQuery <<query>>
+            class GetAlertRuleByIdQuery <<query>> {
+                +alertRuleId: AlertRuleId
+            }
+            class GetAllAlertRulesQuery <<query>>
+            class EvaluateAlertRuleQuery <<query>> {
+                +alertRuleId: AlertRuleId
+                +currentValue: Double
+            }
+        }
+
+        package "domain.model.events" {
+            class AlertSentEvent <<domain event>> {
+                +alert: Alert
+            }
+        }
+
+        package "domain.model.enums" {
             enum AlertPriority {
                 LOW
                 MEDIUM
                 HIGH
+                +isUrgent(): boolean
             }
             enum ReadingType {
                 TEMPERATURE
@@ -123,106 +250,159 @@ package "com.acme.kampo.platform"{
                 GREATER_THAN
                 LESS_THAN
                 EQUAL
+                +evaluate(currentValue: double, threshold: double): boolean
             }
             enum SeverityLevel {
                 LOW
                 MEDIUM
                 HIGH
+                +isCritical(): boolean
             }
         }
-        package "domain.model.valueobjects"{
-            class AlertId <<value object>>{
+
+        package "domain.model.valueobjects" {
+            class AlertId <<value object>> {
                 -value: Long
                 +of(value: Long): AlertId
                 +getValue(): Long
             }
-            class AlertRuleId <<value object>>{
+            class AlertRuleId <<value object>> {
                 -value: Long
                 +of(value: Long): AlertRuleId
                 +getValue(): Long
             }
-            class FieldId <<value object>>{
+            class FieldId <<value object>> {
                 -value: Long
                 +of(value: Long): FieldId
                 +getValue(): Long
             }
         }
-        package "domain.model.events"{
-            class AlertSentEvent <<domain event>>{}
-        }
-        package "domain.repositories"{
-            interface AlertRepository <<repository>>{
-                +findById(id: Long): Optional<Alert>
-                +findAll(): List<Alert>
+
+        package "domain.repositories" {
+            interface AlertRepository <<repository>> {
                 +save(alert: Alert): Alert
+                +findById(id: AlertId): Optional<Alert>
+                +findByFieldId(fieldId: FieldId): List<Alert>
+                +findAllUnread(): List<Alert>
+                +findAll(): List<Alert>
+                +existsById(id: AlertId): boolean
             }
-            interface AlertRuleRepository <<repository>>{
-                +findById(id: Long): Optional<AlertRule>
-                +findAll(): List<AlertRule>
+            interface AlertRuleRepository <<repository>> {
                 +save(alertRule: AlertRule): AlertRule
+                +findById(id: AlertRuleId): Optional<AlertRule>
+                +findByFieldId(fieldId: FieldId): List<AlertRule>
+                +findAll(): List<AlertRule>
+                +existsById(id: AlertRuleId): boolean
             }
         }
-        package "infrastructure.persistence.jpa.repositories"{
-            interface AlertJpaRepository <<jpa repository>>
-            interface AlertRuleJpaRepository <<jpa repository>>
+
+        ' ── INFRASTRUCTURE LAYER ──────────────────────────────────────────────
+        package "infrastructure.persistence.jpa.entities" {
+            class AlertRulePersistenceEntity <<entity>> {
+                -readingType: ReadingType
+                -conditionOperator: ConditionOperator
+                -threshold: Double
+                -severity: SeverityLevel
+                -fieldId: Long
+            }
+            class AlertPersistenceEntity <<entity>> {
+                -message: String
+                -priority: AlertPriority
+                -isRead: boolean
+                -fieldId: Long
+                -alertRuleId: Long
+            }
         }
-        package "infrastructure.persistence.jpa.adapters"{
+
+        package "infrastructure.persistence.jpa.assemblers" {
+            class AlertRulePersistenceAssembler <<assembler>> {
+                +toDomainFromPersistence(entity: AlertRulePersistenceEntity): AlertRule
+                +toPersistenceFromDomain(rule: AlertRule): AlertRulePersistenceEntity
+            }
+            class AlertPersistenceAssembler <<assembler>> {
+                +toDomainFromPersistence(entity: AlertPersistenceEntity): Alert
+                +toPersistenceFromDomain(alert: Alert): AlertPersistenceEntity
+            }
+        }
+
+        package "infrastructure.persistence.jpa.repositories" {
+            interface AlertJpaRepository <<jpa repository>> {
+                +findByFieldId(fieldId: Long): List<AlertPersistenceEntity>
+                +findAllUnread(): List<AlertPersistenceEntity>
+            }
+            interface AlertRuleJpaRepository <<jpa repository>> {
+                +findByFieldId(fieldId: Long): List<AlertRulePersistenceEntity>
+            }
+        }
+
+        package "infrastructure.persistence.jpa.adapters" {
             class AlertRepositoryImpl <<adapter>>
             class AlertRuleRepositoryImpl <<adapter>>
         }
-        package "infrastructure.persistence.jpa.entities"{
-            class AlertPersistenceEntity <<entity>>
-            class AlertRulePersistenceEntity <<entity>>
-        }
-    }
 
-    package "shared"{
-        package "domain.model.aggregates"{
-            abstract class AbstractDomainAggregateRoot <<base aggregate>>
-        }
+        ' ── RELATIONSHIPS ─────────────────────────────────────────────────────
+
+        ' Controller
+        AlertController --> AlertCommandService
+        AlertController --> AlertQueryService
+        AlertController ..> AlertResourceAssembler : uses
+
+        ' ACL
+        AlertContextFacadeImpl ..|> AlertContextFacade
+        AlertContextFacadeImpl --> AlertCommandService
+        AlertContextFacadeImpl --> AlertQueryService
+
+        ' Service implementations
+        AlertCommandServiceImpl ..|> AlertCommandService
+        AlertQueryServiceImpl   ..|> AlertQueryService
+        AlertCommandServiceImpl --> AlertRepository
+        AlertCommandServiceImpl --> AlertRuleRepository
+        AlertQueryServiceImpl   --> AlertRepository
+        AlertQueryServiceImpl   --> AlertRuleRepository
+
+        ' Event handler
+        AlertSentEventHandler --> AlertSentEvent
+        AlertSentEventHandler ..> AlertSentIntegrationEvent : republishes
+
+        ' Repository adapters
+        AlertRepositoryImpl     ..|> AlertRepository
+        AlertRuleRepositoryImpl ..|> AlertRuleRepository
+        AlertRepositoryImpl     --> AlertPersistenceAssembler    : uses
+        AlertRuleRepositoryImpl --> AlertRulePersistenceAssembler : uses
+        AlertJpaRepository      --> AlertPersistenceEntity         : manages
+        AlertRuleJpaRepository  --> AlertRulePersistenceEntity     : manages
+
+        ' Persistence entities extend shared base
+        AlertRulePersistenceEntity --|> AuditableAbstractPersistenceEntity
+        AlertPersistenceEntity     --|> AuditableAbstractPersistenceEntity
+
+        ' Aggregates extend shared base
+        Alert     --|> AbstractDomainAggregateRoot
+        AlertRule --|> AbstractDomainAggregateRoot
+
+        ' Aggregate value objects
+        AlertRule *-- AlertRuleId
+        AlertRule *-- FieldId
+        AlertRule --> ReadingType
+        AlertRule --> ConditionOperator
+        AlertRule --> SeverityLevel
+
+        Alert *-- AlertId
+        Alert *-- FieldId
+        Alert *-- AlertRuleId
+        Alert --> AlertPriority
+
+        ' Domain event
+        Alert ..> AlertSentEvent : publishes
+
+        ' Queries use value objects
+        EvaluateAlertRuleQuery --> AlertRuleId
+        GetAlertByIdQuery      --> AlertId
+        GetAlertRuleByIdQuery  --> AlertRuleId
+
+        ' AlertRule delegates evaluation to ConditionOperator
+        AlertRule ..> ConditionOperator : delegates evaluate()
     }
 }
-
-AlertController --> AlertCommandService
-AlertController --> AlertQueryService
-
-AlertContextFacadeImpl ..|> AlertContextFacade
-AlertContextFacadeImpl --> AlertCommandService
-AlertContextFacadeImpl --> AlertQueryService
-
-AlertCommandServiceImpl ..|> AlertCommandService
-AlertQueryServiceImpl ..|> AlertQueryService
-AlertCommandServiceImpl --> AlertRepository
-AlertCommandServiceImpl --> AlertRuleRepository
-AlertQueryServiceImpl --> AlertRepository
-AlertQueryServiceImpl --> AlertRuleRepository
-
-AlertRepositoryImpl ..|> AlertRepository
-AlertRuleRepositoryImpl ..|> AlertRuleRepository
-
-AlertRepositoryImpl --> AlertPersistenceEntity : uses
-AlertRuleRepositoryImpl --> AlertRulePersistenceEntity : uses
-AlertJpaRepository --> AlertPersistenceEntity : manages
-AlertRuleJpaRepository --> AlertRulePersistenceEntity : manages
-AlertPersistenceEntity --> Alert : toDomainModel()
-AlertRulePersistenceEntity --> AlertRule : toDomainModel()
-
-AlertRule --> AlertRuleId
-AlertRule --> ReadingType
-AlertRule --> ConditionOperator
-AlertRule --> SeverityLevel
-AlertRule --> FieldId
-
-Alert --> AlertId
-Alert --> AlertPriority
-Alert --> FieldId
-Alert --> AlertRuleId
-
-Alert ..> AlertSentEvent : publishes
-AlertSentEventHandler --> AlertSentEvent
-AlertSentEventHandler --> AlertSentIntegrationEvent : republishes
-
-Alert --|> AbstractDomainAggregateRoot
-AlertRule --|> AbstractDomainAggregateRoot
 
 @enduml
