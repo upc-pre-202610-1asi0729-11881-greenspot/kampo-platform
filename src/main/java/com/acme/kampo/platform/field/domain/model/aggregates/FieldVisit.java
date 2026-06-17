@@ -7,6 +7,8 @@ import com.acme.kampo.platform.field.domain.model.events.FieldVisitCompletedEven
 import com.acme.kampo.platform.field.domain.model.valueobjects.FieldId;
 import com.acme.kampo.platform.field.domain.model.valueobjects.FieldVisitId;
 import com.acme.kampo.platform.shared.domain.model.aggregates.AbstractDomainAggregateRoot;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -21,6 +23,7 @@ import java.time.LocalDateTime;
  * <p>Publishes {@link FieldVisitCompletedEvent} when completed.
  * No event is published on scheduling — that is a pure configuration action.</p>
  */
+@Getter
 public class FieldVisit extends AbstractDomainAggregateRoot<FieldVisit> {
 
     private FieldVisitId      id;
@@ -81,13 +84,6 @@ public class FieldVisit extends AbstractDomainAggregateRoot<FieldVisit> {
     }
 
     // ── Getters ───────────────────────────────────────────────────────────────
-
-    public FieldVisitId     getId()          { return id; }
-    public FieldId          getFieldId()     { return fieldId; }
-    public Long             getAgentId()     { return agentId; }
-    public LocalDateTime    getScheduledAt() { return scheduledAt; }
-    public LocalDateTime    getDoneAt()      { return doneAt; }
-    public FieldVisitStatus getStatus()      { return status; }
 
     public FieldVisit reconstitute(Long rawId) {
         this.id = FieldVisitId.of(rawId);

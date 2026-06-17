@@ -3,6 +3,8 @@ package com.acme.kampo.platform.field.infrastructure.persistence.jpa.entities;
 import com.acme.kampo.platform.field.domain.model.enums.FieldVisitStatus;
 import com.acme.kampo.platform.shared.infrastructure.persistence.jpa.entities.AuditableAbstractPersistenceEntity;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -10,6 +12,8 @@ import java.time.LocalDateTime;
  * JPA persistence entity for the {@link com.acme.kampo.platform.field.domain.model.aggregates.FieldVisit} aggregate.
  * Translation handled by {@link com.acme.kampo.platform.field.infrastructure.persistence.jpa.assemblers.FieldVisitPersistenceAssembler}.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "field_visits")
 public class FieldVisitPersistenceEntity extends AuditableAbstractPersistenceEntity {
@@ -32,14 +36,4 @@ public class FieldVisitPersistenceEntity extends AuditableAbstractPersistenceEnt
 
     public FieldVisitPersistenceEntity() {}
 
-    public Long            getFieldId()                    { return fieldId; }
-    public void setFieldId(Long fieldId)                   { this.fieldId = fieldId; }
-    public Long            getAgentId()                    { return agentId; }
-    public void setAgentId(Long agentId)                   { this.agentId = agentId; }
-    public LocalDateTime   getScheduledAt()                { return scheduledAt; }
-    public void setScheduledAt(LocalDateTime scheduledAt)  { this.scheduledAt = scheduledAt; }
-    public LocalDateTime   getDoneAt()                     { return doneAt; }
-    public void setDoneAt(LocalDateTime doneAt)            { this.doneAt = doneAt; }
-    public FieldVisitStatus getStatus()                    { return status; }
-    public void setStatus(FieldVisitStatus status)         { this.status = status; }
 }
