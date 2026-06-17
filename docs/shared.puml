@@ -1,0 +1,75 @@
+@startuml
+left to right direction
+title Class Diagram - Shared (Backend)
+package "com.acme.kampo.platform.shared"{
+    package "domain.model.aggregates"{
+        abstract class AbstractDomainAggregateRoot<<base aggregate>>
+    }
+    package "application.result" {
+       class Result <<utility>>
+
+       class ApplicationError <<value object>> {
+         +code: String
+         +message: String
+         +notFound(entity: String, key: String): ApplicationError
+         +conflict(entity: String, message: String): ApplicationError
+         +validationError(field: String, message: String): ApplicationError
+         +unexpected(context: String, message: String): ApplicationError
+       }
+    }
+    package "interfaces.rest" {
+       class GlobalExceptionHandler <<exception handler>>
+
+       class MessageResource <<resource>> {
+         +message: String
+       }
+
+       class ErrorResource <<resource>> {
+         +error: String
+         +details: String
+         +status: int
+         +timestamp: String
+       }
+    }
+    package "infrastructure"{
+        package "documentation.openapi.configuration"{
+            class OpenApiConfiguration{
+                + applicationName: String
+                + applicationDescription: String
+                + applicationVersion: String
+                + kampoplatformOpenApi():OpenApi
+            }
+        }
+        package "i18n.configuration"{
+            class LocaleConfiguration{
+                + LocaleResolver():AcceptHeaderLocalResolver
+            }
+        }
+        package "persistence.jpa"{
+            package "configuration.strategy"{
+                class SnakeCaseWithPluralizedTablePhysicalNamingStrategy{
+                + toPhysicalCatalogName(Identifier identifier, JdbcEnvironment jdbcEnvironment)
+                + toPhysicalSchemaName(Identifier identifier, JdbcEnvironment jdbcEnvironment)
+                + toPhysicalTableName(Identifier identifier, JdbcEnvironment jdbcEnvironment)
+                + toPhysicalSequenceName(Identifier identifier, JdbcEnvironment jdbcEnvironment)
+                + toPhysicalColumnName(Identifier identifier, JdbcEnvironment jdbcEnvironment)
+                + toSnakeCase(final Identifier identifier)
+                + toPlural(final Identifier identifier)
+                }
+            }
+            package "entites"{
+                abstract class AuditableAbstractPersistenceEntity{
+                    - id: Long
+                    - createdAt: Date
+                    - updatedAt: Date
+                    + setId(Long id): id
+
+                }
+            }
+        }
+    }
+
+}
+
+
+@enduml

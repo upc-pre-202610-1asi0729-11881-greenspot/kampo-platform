@@ -1,0 +1,805 @@
+@startuml
+title Class Diagram - Financial Management (Backend - Spring Boot)
+left to right direction
+
+package "com.acme.kampo.platform.shared" {
+    package "domain.model.aggregates" {
+        abstract class AbstractDomainAggregateRoot <<base aggregate>> {
+        }
+    }
+}
+
+package "com.acme.kampo.platform.financial" {
+
+    package "interfaces.rest" {
+        class ExpenseController <<controller>> {
+            -expenseCommandService: ExpenseCommandService
+            -expenseQueryService: ExpenseQueryService
+            +createExpense(resource: CreateExpenseResource): ResponseEntity<?>
+            +updateExpense(id: Long, resource: UpdateExpenseResource): ResponseEntity<?>
+            +deleteExpense(id: Long): ResponseEntity<?>
+            +getExpenseById(id: Long): ResponseEntity<?>
+            +getExpensesByFundo(fundoId: Long): ResponseEntity<?>
+            +getAllExpenses(): ResponseEntity<?>
+        }
+
+        class IncomeController <<controller>> {
+            -incomeCommandService: IncomeCommandService
+            -incomeQueryService: IncomeQueryService
+            +createIncome(resource: CreateIncomeResource): ResponseEntity<?>
+            +updateIncome(id: Long, resource: UpdateIncomeResource): ResponseEntity<?>
+            +deleteIncome(id: Long): ResponseEntity<?>
+            +getIncomeById(id: Long): ResponseEntity<?>
+            +getIncomesByFundo(fundoId: Long): ResponseEntity<?>
+        }
+
+        class SaleController <<controller>> {
+            -saleCommandService: SaleCommandService
+            -saleQueryService: SaleQueryService
+            +createSale(resource: CreateSaleResource): ResponseEntity<?>
+            +updateSale(id: Long, resource: UpdateSaleResource): ResponseEntity<?>
+            +cancelSale(id: Long): ResponseEntity<?>
+            +getSaleById(id: Long): ResponseEntity<?>
+            +getSalesByFundo(fundoId: Long): ResponseEntity<?>
+        }
+
+        class ProfitabilityController <<controller>> {
+            -profitabilityCommandService: ProfitabilityCommandService
+            -profitabilityQueryService: ProfitabilityQueryService
+            +calculateProfitability(resource: CalculateProfitabilityResource): ResponseEntity<?>
+            +getProfitabilityByFundo(fundoId: Long, seasonId: Long): ResponseEntity<?>
+            +getProfitabilityHistory(fundoId: Long): ResponseEntity<?>
+        }
+
+        class ExpenseCategoryController <<controller>> {
+            -expenseCommandService: ExpenseCommandService
+            -expenseQueryService: ExpenseQueryService
+            +createCategory(resource: CreateExpenseCategoryResource): ResponseEntity<?>
+            +getAllCategories(): ResponseEntity<?>
+            +getCategoryById(id: Long): ResponseEntity<?>
+        }
+    }
+
+    package "interfaces.acl" {
+        interface FinancialContextFacade <<facade>> {
+            +fetchExpenseTotalByFundo(fundoId: Long): Money
+            +fetchIncomeTotalByFundo(fundoId: Long): Money
+            +fetchSaleTotalByFundo(fundoId: Long): Money
+            +fetchProfitabilityByFundoAndSeason(fundoId: Long, seasonId: Long): Optional<Profitability>
+        }
+    }
+
+    package "interfaces.events" {
+        class ExpenseRegisteredIntegrationEvent <<integration event>> {
+            +expenseId: Long
+            +fundoId: Long
+            +amount: BigDecimal
+            +currency: String
+            +occurredOn: LocalDateTime
+        }
+        class IncomeRegisteredIntegrationEvent <<integration event>> {
+            +incomeId: Long
+            +fundoId: Long
+            +amount: BigDecimal
+            +currency: String
+            +occurredOn: LocalDateTime
+        }
+        class SaleRegisteredIntegrationEvent <<integration event>> {
+            +saleId: Long
+            +fundoId: Long
+            +totalAmount: BigDecimal
+            +occurredOn: LocalDateTime
+        }
+        class ProfitabilityCalculatedIntegrationEvent <<integration event>> {
+            +fundoId: Long
+            +seasonId: Long
+            +netProfit: BigDecimal
+            +marginPercentage: Double
+            +occurredOn: LocalDateTime
+        }
+    }
+
+    ' ── APPLICATION LAYER ─────────────────────
+    package "application.commandservices" {
+        interface ExpenseCommandService <<service>> {
+            +handle(command: RegisterExpenseCommand): Result<Expense, ApplicationError>
+            +handle(command: UpdateExpenseCommand): Result<Expense, ApplicationError>
+            +handle(command: DeleteExpenseCommand): Result<Void, ApplicationError>
+            +handle(command: CreateExpenseCategoryCommand): Result<ExpenseCategory, ApplicationError>
+        }
+        interface IncomeCommandService <<service>> {
+            +handle(command: RegisterIncomeCommand): Result<Income, ApplicationError>
+            +handle(command: UpdateIncomeCommand): Result<Income, ApplicationError>
+            +handle(command: DeleteIncomeCommand): Result<Void, ApplicationError>
+        }
+        interface SaleCommandService <<service>> {
+            +handle(command: RegisterSaleCommand): Result<Sale, ApplicationError>
+            +handle(command: UpdateSaleCommand): Result<Sale, ApplicationError>
+            +handle(command: CancelSaleCommand): Result<Void, ApplicationError>
+        }
+        interface ProfitabilityCommandService <<service>> {
+            +handle(command: CalculateProfitabilityCommand): Result<Profitability, ApplicationError>
+        }
+    }
+
+    package "application.queryservices" {
+        interface ExpenseQueryService <<service>> {
+            +handle(query: GetExpenseByIdQuery): Optional<Expense>
+            +handle(query: GetExpensesByFundoQuery): List<Expense>
+            +handle(query: GetExpensesByTypeQuery): List<Expense>
+            +handle(query: GetAllExpensesQuery): List<Expense>
+            +handle(query: GetExpenseCategoriesQuery): List<ExpenseCategory>
+        }
+        interface IncomeQueryService <<service>> {
+            +handle(query: GetIncomeByIdQuery): Optional<Income>
+            +handle(query: GetIncomesByFundoQuery): List<Income>
+            +handle(query: GetAllIncomesQuery): List<Income>
+        }
+        interface SaleQueryService <<service>> {
+            +handle(query: GetSaleByIdQuery): Optional<Sale>
+            +handle(query: GetSalesByFundoQuery): List<Sale>
+            +handle(query: GetSalesByCropQuery): List<Sale>
+        }
+        interface ProfitabilityQueryService <<service>> {
+            +handle(query: GetProfitabilityByFundoQuery): Optional<Profitability>
+            +handle(query: GetProfitabilityBySeasonQuery): Optional<Profitability>
+            +handle(query: GetProfitabilityHistoryQuery): List<Profitability>
+        }
+    }
+
+    package "application.internal.commandservices" {
+        class ExpenseCommandServiceImpl <<service>> {
+            -expenseRepository: ExpenseRepository
+            -expenseCategoryRepository: ExpenseCategoryRepository
+            +handle(command: RegisterExpenseCommand): Result<Expense, ApplicationError>
+            +handle(command: UpdateExpenseCommand): Result<Expense, ApplicationError>
+            +handle(command: DeleteExpenseCommand): Result<Void, ApplicationError>
+            +handle(command: CreateExpenseCategoryCommand): Result<ExpenseCategory, ApplicationError>
+        }
+        class IncomeCommandServiceImpl <<service>> {
+            -incomeRepository: IncomeRepository
+            +handle(command: RegisterIncomeCommand): Result<Income, ApplicationError>
+            +handle(command: UpdateIncomeCommand): Result<Income, ApplicationError>
+            +handle(command: DeleteIncomeCommand): Result<Void, ApplicationError>
+        }
+        class SaleCommandServiceImpl <<service>> {
+            -saleRepository: SaleRepository
+            +handle(command: RegisterSaleCommand): Result<Sale, ApplicationError>
+            +handle(command: UpdateSaleCommand): Result<Sale, ApplicationError>
+            +handle(command: CancelSaleCommand): Result<Void, ApplicationError>
+        }
+        class ProfitabilityCommandServiceImpl <<service>> {
+            -expenseRepository: ExpenseRepository
+            -incomeRepository: IncomeRepository
+            -saleRepository: SaleRepository
+            +handle(command: CalculateProfitabilityCommand): Result<Profitability, ApplicationError>
+        }
+    }
+
+    package "application.internal.queryservices" {
+        class ExpenseQueryServiceImpl <<service>> {
+            -expenseRepository: ExpenseRepository
+            -expenseCategoryRepository: ExpenseCategoryRepository
+            +handle(query: GetExpenseByIdQuery): Optional<Expense>
+            +handle(query: GetExpensesByFundoQuery): List<Expense>
+            +handle(query: GetExpensesByTypeQuery): List<Expense>
+            +handle(query: GetAllExpensesQuery): List<Expense>
+            +handle(query: GetExpenseCategoriesQuery): List<ExpenseCategory>
+        }
+        class IncomeQueryServiceImpl <<service>> {
+            -incomeRepository: IncomeRepository
+            +handle(query: GetIncomeByIdQuery): Optional<Income>
+            +handle(query: GetIncomesByFundoQuery): List<Income>
+            +handle(query: GetAllIncomesQuery): List<Income>
+        }
+        class SaleQueryServiceImpl <<service>> {
+            -saleRepository: SaleRepository
+            +handle(query: GetSaleByIdQuery): Optional<Sale>
+            +handle(query: GetSalesByFundoQuery): List<Sale>
+            +handle(query: GetSalesByCropQuery): List<Sale>
+        }
+        class ProfitabilityQueryServiceImpl <<service>> {
+            -expenseRepository: ExpenseRepository
+            -incomeRepository: IncomeRepository
+            -saleRepository: SaleRepository
+            +handle(query: GetProfitabilityByFundoQuery): Optional<Profitability>
+            +handle(query: GetProfitabilityBySeasonQuery): Optional<Profitability>
+            +handle(query: GetProfitabilityHistoryQuery): List<Profitability>
+        }
+    }
+
+    package "application.internal.eventhandlers" {
+        class ExpenseRegisteredEventHandler <<event handler>> {
+            -eventPublisher: ApplicationEventPublisher
+            +on(event: ExpenseRegisteredEvent): void
+        }
+        class IncomeRegisteredEventHandler <<event handler>> {
+            -eventPublisher: ApplicationEventPublisher
+            +on(event: IncomeRegisteredEvent): void
+        }
+        class SaleRegisteredEventHandler <<event handler>> {
+            -eventPublisher: ApplicationEventPublisher
+            +on(event: SaleRegisteredEvent): void
+        }
+        class ProfitabilityCalculatedEventHandler <<event handler>> {
+            -eventPublisher: ApplicationEventPublisher
+            +on(event: ProfitabilityCalculatedEvent): void
+        }
+    }
+
+    package "application.acl" {
+        class FinancialContextFacadeImpl <<facade>> {
+            -expenseQueryService: ExpenseQueryService
+            -incomeQueryService: IncomeQueryService
+            -saleQueryService: SaleQueryService
+            -profitabilityQueryService: ProfitabilityQueryService
+            +fetchExpenseTotalByFundo(fundoId: Long): Money
+            +fetchIncomeTotalByFundo(fundoId: Long): Money
+            +fetchSaleTotalByFundo(fundoId: Long): Money
+            +fetchProfitabilityByFundoAndSeason(fundoId: Long, seasonId: Long): Optional<Profitability>
+        }
+    }
+
+    ' ── DOMAIN LAYER ──────────────────────────
+    package "domain.model.commands" {
+        ' Expense
+        class RegisterExpenseCommand <<command>> {
+            +description: String
+            +amount: BigDecimal
+            +currency: String
+            +type: ExpenseType
+            +categoryId: Long
+            +fundoId: Long
+            +date: LocalDate
+        }
+        class UpdateExpenseCommand <<command>> {
+            +expenseId: Long
+            +description: String
+            +amount: BigDecimal
+            +type: ExpenseType
+        }
+        class DeleteExpenseCommand <<command>> {
+            +expenseId: Long
+        }
+        class CreateExpenseCategoryCommand <<command>> {
+            +name: String
+            +description: String
+        }
+        ' Income
+        class RegisterIncomeCommand <<command>> {
+            +description: String
+            +amount: BigDecimal
+            +currency: String
+            +fundoId: Long
+            +date: LocalDate
+        }
+        class UpdateIncomeCommand <<command>> {
+            +incomeId: Long
+            +description: String
+            +amount: BigDecimal
+        }
+        class DeleteIncomeCommand <<command>> {
+            +incomeId: Long
+        }
+        ' Sale
+        class RegisterSaleCommand <<command>> {
+            +cropName: String
+            +quantity: Double
+            +pricePerUnit: BigDecimal
+            +currency: String
+            +fundoId: Long
+            +date: LocalDate
+        }
+        class UpdateSaleCommand <<command>> {
+            +saleId: Long
+            +cropName: String
+            +quantity: Double
+            +pricePerUnit: BigDecimal
+        }
+        class CancelSaleCommand <<command>> {
+            +saleId: Long
+        }
+        ' Profitability
+        class CalculateProfitabilityCommand <<command>> {
+            +fundoId: Long
+            +seasonId: Long
+            +periodStart: LocalDate
+            +periodEnd: LocalDate
+        }
+    }
+
+    package "domain.model.queries" {
+        ' Expense
+        class GetExpenseByIdQuery <<query>> {
+            +expenseId: Long
+        }
+        class GetExpensesByFundoQuery <<query>> {
+            +fundoId: Long
+        }
+        class GetExpensesByTypeQuery <<query>> {
+            +type: ExpenseType
+        }
+        class GetAllExpensesQuery <<query>>
+        class GetExpenseCategoriesQuery <<query>>
+
+        ' Income
+        class GetIncomeByIdQuery <<query>> {
+            +incomeId: Long
+        }
+        class GetIncomesByFundoQuery <<query>> {
+            +fundoId: Long
+        }
+        class GetAllIncomesQuery <<query>>
+
+        ' Sale
+        class GetSaleByIdQuery <<query>> {
+            +saleId: Long
+        }
+        class GetSalesByFundoQuery <<query>> {
+            +fundoId: Long
+        }
+        class GetSalesByCropQuery <<query>> {
+            +cropName: String
+        }
+
+        ' Profitability
+        class GetProfitabilityByFundoQuery <<query>> {
+            +fundoId: Long
+        }
+        class GetProfitabilityBySeasonQuery <<query>> {
+            +fundoId: Long
+            +seasonId: Long
+        }
+        class GetProfitabilityHistoryQuery <<query>> {
+            +fundoId: Long
+        }
+    }
+
+    package "domain.model.aggregates" {
+        class Expense <<aggregate>> {
+            -id: ExpenseId
+            -description: String
+            -amount: Money
+            -type: ExpenseType
+            -categoryId: Long
+            -fundoId: FundoId
+            -date: LocalDate
+            -createdAt: LocalDateTime
+            +create(command: RegisterExpenseCommand): Expense
+            +update(command: UpdateExpenseCommand): void
+            +validate(): void
+            +belongsToFundo(fundoId: FundoId): boolean
+            +getId(): ExpenseId
+            +getAmount(): Money
+            +getFundoId(): FundoId
+        }
+
+        class Income <<aggregate>> {
+            -id: IncomeId
+            -description: String
+            -amount: Money
+            -fundoId: FundoId
+            -date: LocalDate
+            -createdAt: LocalDateTime
+            +create(command: RegisterIncomeCommand): Income
+            +update(command: UpdateIncomeCommand): void
+            +validate(): void
+            +getId(): IncomeId
+            +getAmount(): Money
+            +getFundoId(): FundoId
+        }
+
+        class Sale <<aggregate>> {
+            -id: SaleId
+            -cropName: String
+            -quantity: Double
+            -pricePerUnit: Money
+            -totalAmount: Money
+            -fundoId: FundoId
+            -date: LocalDate
+            -createdAt: LocalDateTime
+            +create(command: RegisterSaleCommand): Sale
+            +update(command: UpdateSaleCommand): void
+            +cancel(): void
+            +calculateTotal(): Money
+            +validate(): void
+            +getId(): SaleId
+            +getFundoId(): FundoId
+        }
+    }
+
+    package "domain.model.entities" {
+        ' NOTE: ExpenseCategory is an Entity, NOT an Aggregate Root.
+        ' It has no independent lifecycle; Expense references it via categoryId (Long).
+        class ExpenseCategory <<entity>> {
+            -id: Long
+            -name: String
+            -description: String
+            +getId(): Long
+            +getName(): String
+            +getDescription(): String
+        }
+    }
+
+    package "domain.model.services" {
+        ' NOTE: Profitability is a Domain Service result type / Read Model.
+        ' It is calculated, not mutated. It is NOT an Aggregate Root.
+        class ProfitabilityCalculatorService <<domain service>> {
+            +calculate(income: Money, expenses: Money, sales: Money, fundoId: FundoId, seasonId: SeasonId): Profitability
+        }
+        class Profitability <<value object>> {
+            -fundoId: FundoId
+            -seasonId: SeasonId
+            -totalIncome: Money
+            -totalExpenses: Money
+            -totalSales: Money
+            -netProfit: Money
+            -margin: Double
+            -calculatedAt: LocalDateTime
+            +getNetProfit(): Money
+            +getMarginPercentage(): Double
+            +getTotalIncome(): Money
+            +getTotalExpenses(): Money
+        }
+    }
+
+    package "domain.model.enums" {
+        enum ExpenseType {
+            LABOR
+            INPUT
+            TRANSPORT
+            MAINTENANCE
+            OTHER
+        }
+        enum FinancialPeriod {
+            MONTHLY
+            QUARTERLY
+            SEASONAL
+            ANNUAL
+        }
+    }
+
+    package "domain.model.valueobjects" {
+        class Money <<value object>> {
+            -amount: BigDecimal
+            -currency: String
+            +of(amount: BigDecimal, currency: String): Money
+            +add(other: Money): Money
+            +subtract(other: Money): Money
+            +isPositive(): boolean
+            +isZero(): boolean
+        }
+        class FundoId <<value object>> {
+            -value: Long
+            +of(value: Long): FundoId
+            +getValue(): Long
+        }
+        class SeasonId <<value object>> {
+            -value: Long
+            +of(value: Long): SeasonId
+            +getValue(): Long
+        }
+        class ExpenseId <<value object>> {
+            -value: Long
+            +of(value: Long): ExpenseId
+            +getValue(): Long
+        }
+        class IncomeId <<value object>> {
+            -value: Long
+            +of(value: Long): IncomeId
+            +getValue(): Long
+        }
+        class SaleId <<value object>> {
+            -value: Long
+            +of(value: Long): SaleId
+            +getValue(): Long
+        }
+    }
+
+    package "domain.model.events" {
+        class ExpenseRegisteredEvent <<domain event>> {
+            +expenseId: ExpenseId
+            +fundoId: FundoId
+            +amount: Money
+            +occurredOn: LocalDateTime
+        }
+        class IncomeRegisteredEvent <<domain event>> {
+            +incomeId: IncomeId
+            +fundoId: FundoId
+            +amount: Money
+            +occurredOn: LocalDateTime
+        }
+        class SaleRegisteredEvent <<domain event>> {
+            +saleId: SaleId
+            +fundoId: FundoId
+            +totalAmount: Money
+            +occurredOn: LocalDateTime
+        }
+        class ProfitabilityCalculatedEvent <<domain event>> {
+            +fundoId: FundoId
+            +seasonId: SeasonId
+            +netProfit: Money
+            +marginPercentage: Double
+            +occurredOn: LocalDateTime
+        }
+        class ExpenseCategoryCreatedEvent <<domain event>> {
+            +categoryId: Long
+            +name: String
+            +occurredOn: LocalDateTime
+        }
+    }
+
+    package "domain.repositories" {
+        interface ExpenseRepository <<repository>> {
+            +save(expense: Expense): Expense
+            +findById(id: ExpenseId): Optional<Expense>
+            +findByFundoId(fundoId: FundoId): List<Expense>
+            +findByType(type: ExpenseType): List<Expense>
+            +findAll(): List<Expense>
+            +delete(id: ExpenseId): void
+        }
+        interface IncomeRepository <<repository>> {
+            +save(income: Income): Income
+            +findById(id: IncomeId): Optional<Income>
+            +findByFundoId(fundoId: FundoId): List<Income>
+            +findAll(): List<Income>
+            +delete(id: IncomeId): void
+        }
+        interface SaleRepository <<repository>> {
+            +save(sale: Sale): Sale
+            +findById(id: SaleId): Optional<Sale>
+            +findByFundoId(fundoId: FundoId): List<Sale>
+            +findByCropName(cropName: String): List<Sale>
+            +delete(id: SaleId): void
+        }
+        interface ExpenseCategoryRepository <<repository>> {
+            +save(category: ExpenseCategory): ExpenseCategory
+            +findById(id: Long): Optional<ExpenseCategory>
+            +findAll(): List<ExpenseCategory>
+        }
+    }
+
+    ' ── INFRASTRUCTURE LAYER ──────────────────
+    package "infrastructure.persistence.jpa.repositories" {
+        interface ExpenseJpaRepository <<jpa repository>> {
+            ' extends JpaRepository<ExpenseEntity, Long>
+            +findByFundoId(fundoId: Long): List<ExpenseEntity>
+            +findByType(type: String): List<ExpenseEntity>
+        }
+        interface IncomeJpaRepository <<jpa repository>> {
+            ' extends JpaRepository<IncomeEntity, Long>
+            +findByFundoId(fundoId: Long): List<IncomeEntity>
+        }
+        interface SaleJpaRepository <<jpa repository>> {
+            ' extends JpaRepository<SaleEntity, Long>
+            +findByFundoId(fundoId: Long): List<SaleEntity>
+            +findByCropName(cropName: String): List<SaleEntity>
+        }
+        interface ExpenseCategoryJpaRepository <<jpa repository>> {
+            ' extends JpaRepository<ExpenseCategoryEntity, Long>
+        }
+    }
+
+    package "infrastructure.persistence.jpa.adapters" {
+        class ExpenseRepositoryImpl <<adapter>> {
+            -jpaRepository: ExpenseJpaRepository
+            +save(expense: Expense): Expense
+            +findById(id: ExpenseId): Optional<Expense>
+            +findByFundoId(fundoId: FundoId): List<Expense>
+            +findByType(type: ExpenseType): List<Expense>
+            +findAll(): List<Expense>
+            +delete(id: ExpenseId): void
+        }
+        class IncomeRepositoryImpl <<adapter>> {
+            -jpaRepository: IncomeJpaRepository
+            +save(income: Income): Income
+            +findById(id: IncomeId): Optional<Income>
+            +findByFundoId(fundoId: FundoId): List<Income>
+            +findAll(): List<Income>
+            +delete(id: IncomeId): void
+        }
+        class SaleRepositoryImpl <<adapter>> {
+            -jpaRepository: SaleJpaRepository
+            +save(sale: Sale): Sale
+            +findById(id: SaleId): Optional<Sale>
+            +findByFundoId(fundoId: FundoId): List<Sale>
+            +findByCropName(cropName: String): List<Sale>
+            +delete(id: SaleId): void
+        }
+        class ExpenseCategoryRepositoryImpl <<adapter>> {
+            -jpaRepository: ExpenseCategoryJpaRepository
+            +save(category: ExpenseCategory): ExpenseCategory
+            +findById(id: Long): Optional<ExpenseCategory>
+            +findAll(): List<ExpenseCategory>
+        }
+    }
+
+    package "infrastructure.persistence.jpa.entities" {
+        class ExpensePersistenceEntity <<entity>> {
+            ' @Entity @Table(name = "expenses")
+            -id: Long
+            -description: String
+            -amount: BigDecimal
+            -currency: String
+            -type: String
+            -categoryId: Long
+            -fundoId: Long
+            -date: LocalDate
+            -createdAt: LocalDateTime
+        }
+        class IncomePersistenceEntity <<entity>> {
+            ' @Entity @Table(name = "incomes")
+            -id: Long
+            -description: String
+            -amount: BigDecimal
+            -currency: String
+            -fundoId: Long
+            -date: LocalDate
+            -createdAt: LocalDateTime
+        }
+        class SalePersistenceEntity <<entity>> {
+            ' @Entity @Table(name = "sales")
+            -id: Long
+            -cropName: String
+            -quantity: Double
+            -pricePerUnit: BigDecimal
+            -totalAmount: BigDecimal
+            -currency: String
+            -fundoId: Long
+            -date: LocalDate
+            -createdAt: LocalDateTime
+        }
+        class ExpenseCategoryPersistenceEntity <<entity>> {
+            ' @Entity @Table(name = "expense_categories")
+            -id: Long
+            -name: String
+            -description: String
+        }
+    }
+
+    ' ─────────────────────────────────────────
+    ' RELATIONSHIPS
+    ' ─────────────────────────────────────────
+
+    ' Controllers -> Command & Query Services (interfaces)
+    ExpenseController      --> ExpenseCommandService
+    ExpenseController      --> ExpenseQueryService
+    IncomeController       --> IncomeCommandService
+    IncomeController       --> IncomeQueryService
+    SaleController         --> SaleCommandService
+    SaleController         --> SaleQueryService
+    ProfitabilityController --> ProfitabilityCommandService
+    ProfitabilityController --> ProfitabilityQueryService
+    ExpenseCategoryController --> ExpenseCommandService
+    ExpenseCategoryController --> ExpenseQueryService
+
+    ' ACL
+    FinancialContextFacadeImpl ..|> FinancialContextFacade
+    FinancialContextFacadeImpl --> ExpenseQueryService
+    FinancialContextFacadeImpl --> IncomeQueryService
+    FinancialContextFacadeImpl --> SaleQueryService
+    FinancialContextFacadeImpl --> ProfitabilityQueryService
+
+    ' Impl -> Interface (implements)
+    ExpenseCommandServiceImpl  ..|> ExpenseCommandService
+    IncomeCommandServiceImpl   ..|> IncomeCommandService
+    SaleCommandServiceImpl     ..|> SaleCommandService
+    ProfitabilityCommandServiceImpl ..|> ProfitabilityCommandService
+    ExpenseQueryServiceImpl    ..|> ExpenseQueryService
+    IncomeQueryServiceImpl     ..|> IncomeQueryService
+    SaleQueryServiceImpl       ..|> SaleQueryService
+    ProfitabilityQueryServiceImpl   ..|> ProfitabilityQueryService
+
+    ' Command Services -> Repositories
+    ExpenseCommandServiceImpl  --> ExpenseRepository
+    ExpenseCommandServiceImpl  --> ExpenseCategoryRepository
+    IncomeCommandServiceImpl   --> IncomeRepository
+    SaleCommandServiceImpl     --> SaleRepository
+    ProfitabilityCommandServiceImpl --> ExpenseRepository
+    ProfitabilityCommandServiceImpl --> IncomeRepository
+    ProfitabilityCommandServiceImpl --> SaleRepository
+
+    ' Query Services -> Repositories
+    ExpenseQueryServiceImpl    --> ExpenseRepository
+    ExpenseQueryServiceImpl    --> ExpenseCategoryRepository
+    IncomeQueryServiceImpl     --> IncomeRepository
+    SaleQueryServiceImpl       --> SaleRepository
+    ProfitabilityQueryServiceImpl --> ExpenseRepository
+    ProfitabilityQueryServiceImpl --> IncomeRepository
+    ProfitabilityQueryServiceImpl --> SaleRepository
+
+    ' Command Services use Commands
+    ExpenseCommandServiceImpl  ..> RegisterExpenseCommand
+    ExpenseCommandServiceImpl  ..> UpdateExpenseCommand
+    ExpenseCommandServiceImpl  ..> DeleteExpenseCommand
+    ExpenseCommandServiceImpl  ..> CreateExpenseCategoryCommand
+    IncomeCommandServiceImpl   ..> RegisterIncomeCommand
+    IncomeCommandServiceImpl   ..> UpdateIncomeCommand
+    IncomeCommandServiceImpl   ..> DeleteIncomeCommand
+    SaleCommandServiceImpl     ..> RegisterSaleCommand
+    SaleCommandServiceImpl     ..> UpdateSaleCommand
+    SaleCommandServiceImpl     ..> CancelSaleCommand
+    ProfitabilityCommandServiceImpl ..> CalculateProfitabilityCommand
+
+    ' Query Services use Queries
+    ExpenseQueryServiceImpl    ..> GetExpenseByIdQuery
+    ExpenseQueryServiceImpl    ..> GetExpensesByFundoQuery
+    ExpenseQueryServiceImpl    ..> GetAllExpensesQuery
+    IncomeQueryServiceImpl     ..> GetIncomeByIdQuery
+    IncomeQueryServiceImpl     ..> GetIncomesByFundoQuery
+    SaleQueryServiceImpl       ..> GetSaleByIdQuery
+    SaleQueryServiceImpl       ..> GetSalesByFundoQuery
+    ProfitabilityQueryServiceImpl ..> GetProfitabilityByFundoQuery
+    ProfitabilityQueryServiceImpl ..> GetProfitabilityBySeasonQuery
+
+    ' Aggregates extend AbstractDomainAggregateRoot
+    Expense --|> AbstractDomainAggregateRoot
+    Income  --|> AbstractDomainAggregateRoot
+    Sale    --|> AbstractDomainAggregateRoot
+
+    ' Aggregates use Value Objects
+    Expense *-- ExpenseId
+    Expense *-- Money
+    Expense *-- FundoId
+    Expense --> ExpenseType
+
+    Income *-- IncomeId
+    Income *-- Money
+    Income *-- FundoId
+
+    Sale *-- SaleId
+    Sale *-- Money
+    Sale *-- FundoId
+
+    Profitability *-- Money
+    Profitability *-- FundoId
+    Profitability *-- SeasonId
+
+    ' Aggregates publish Domain Events
+    Expense ..> ExpenseRegisteredEvent : publishes
+    Income  ..> IncomeRegisteredEvent  : publishes
+    Sale    ..> SaleRegisteredEvent    : publishes
+    ProfitabilityCalculatorService ..> ProfitabilityCalculatedEvent : publishes
+
+    ' Event Handlers consume Domain Events
+    ExpenseRegisteredEventHandler    ..> ExpenseRegisteredEvent    : handles
+    IncomeRegisteredEventHandler     ..> IncomeRegisteredEvent     : handles
+    SaleRegisteredEventHandler       ..> SaleRegisteredEvent       : handles
+    ProfitabilityCalculatedEventHandler ..> ProfitabilityCalculatedEvent : handles
+
+    ' Event Handlers publish Integration Events
+    ExpenseRegisteredEventHandler    ..> ExpenseRegisteredIntegrationEvent    : publishes
+    IncomeRegisteredEventHandler     ..> IncomeRegisteredIntegrationEvent     : publishes
+    SaleRegisteredEventHandler       ..> SaleRegisteredIntegrationEvent       : publishes
+    ProfitabilityCalculatedEventHandler ..> ProfitabilityCalculatedIntegrationEvent : publishes
+
+    ' Domain Service
+    ProfitabilityCommandServiceImpl --> ProfitabilityCalculatorService
+    ProfitabilityCalculatorService ..> Profitability : creates
+
+    ' Repository Adapters implement Domain Repositories
+    ExpenseRepositoryImpl      ..|> ExpenseRepository
+    IncomeRepositoryImpl       ..|> IncomeRepository
+    SaleRepositoryImpl         ..|> SaleRepository
+    ExpenseCategoryRepositoryImpl ..|> ExpenseCategoryRepository
+
+    ' 1. La entity sabe convertirse al aggregate de dominio (y viceversa)
+    ExpensePersistenceEntity         --> Expense         : toDomainModel()
+    IncomePersistenceEntity          --> Income          : toDomainModel()
+    SalePersistenceEntity            --> Sale            : toDomainModel()
+    ExpenseCategoryPersistenceEntity --> ExpenseCategory : toDomainModel()
+
+    ' 2. El adapter usa la entity para mapear (fromDomainModel antes de persistir)
+    ExpenseRepositoryImpl         --> ExpensePersistenceEntity         : uses
+    IncomeRepositoryImpl          --> IncomePersistenceEntity          : uses
+    SaleRepositoryImpl            --> SalePersistenceEntity            : uses
+    ExpenseCategoryRepositoryImpl --> ExpenseCategoryPersistenceEntity : uses
+
+
+    ExpenseJpaRepository         --> ExpensePersistenceEntity         : manages
+    IncomeJpaRepository          --> IncomePersistenceEntity          : manages
+    SaleJpaRepository            --> SalePersistenceEntity            : manages
+    ExpenseCategoryJpaRepository --> ExpenseCategoryPersistenceEntity : manages
+}
+
+@enduml

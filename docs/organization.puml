@@ -1,0 +1,464 @@
+@startuml
+title Class Diagram - Organization Management (Backend - Spring Boot)
+left to right direction
+
+package "com.acme.kampo.platform" {
+
+    package "shared" {
+        package "domain.model.aggregates" {
+            abstract class AbstractDomainAggregateRoot <<base aggregate>>
+        }
+        package "infrastructure.persistence.jpa.entities" {
+            abstract class AuditableAbstractPersistenceEntity <<base entity>>
+        }
+        package "application.result" {
+            class Result<T,E> <<sealed interface>>
+            class ApplicationError <<record>>
+        }
+    }
+
+    package "organization" {
+
+        ' ── INTERFACES LAYER ──────────────────────────────────────────────────
+        package "interfaces.rest" {
+            class OrganizationController <<controller>> {
+                -organizationCommandService: OrganizationCommandService
+                -organizationQueryService: OrganizationQueryService
+                +createOrganization(resource: CreateOrganizationResource): ResponseEntity<?>
+                +updateOrganization(id: Long, resource: UpdateOrganizationResource): ResponseEntity<?>
+                +deleteOrganization(id: Long): ResponseEntity<?>
+                +getOrganizationById(organizationId: Long): ResponseEntity<?>
+                +getAllOrganizations(): ResponseEntity<?>
+                +registerFundo(resource: RegisterFundoResource): ResponseEntity<?>
+                +registerField(resource: RegisterFieldResource): ResponseEntity<?>
+                +registerCrop(resource: RegisterCropResource): ResponseEntity<?>
+            }
+        }
+
+        package "interfaces.acl" {
+            interface OrganizationsContextFacade <<facade>> {
+                +createOrganization(name: String, address: String): Long
+                +fetchOrganizationIdByName(name: String): Optional<Long>
+            }
+        }
+
+        package "interfaces.events" {
+            class OrganizationCreatedIntegrationEvent <<integration event>> {
+                +organizationId: Long
+                +name: String
+                +address: String
+                +from(organization: Organization): OrganizationCreatedIntegrationEvent
+            }
+        }
+
+        ' ── APPLICATION LAYER ─────────────────────────────────────────────────
+        package "application.commandservices" {
+            interface OrganizationCommandService <<service>> {
+                +handle(command: CreateOrganizationCommand): Result<Organization, ApplicationError>
+                +handle(command: UpdateOrganizationCommand): Result<Organization, ApplicationError>
+                +handle(command: DeleteOrganizationCommand): Result<Void, ApplicationError>
+                +handle(command: RegisterFundoCommand): Result<Fundo, ApplicationError>
+                +handle(command: RegisterFieldCommand): Result<Field, ApplicationError>
+                +handle(command: RegisterCropCommand): Result<Crop, ApplicationError>
+            }
+        }
+
+        package "application.queryservices" {
+            interface OrganizationQueryService <<service>> {
+                +handle(query: GetOrganizationByIdQuery): Optional<Organization>
+                +handle(query: GetAllOrganizationsQuery): List<Organization>
+                +handle(query: GetFundoByIdQuery): Optional<Fundo>
+                +handle(query: GetFundosByOrganizationQuery): List<Fundo>
+                +handle(query: GetFieldByIdQuery): Optional<Field>
+                +handle(query: GetFieldsByFundoQuery): List<Field>
+                +handle(query: GetCropByIdQuery): Optional<Crop>
+                +handle(query: GetCropsByFieldQuery): List<Crop>
+            }
+        }
+
+        package "application.internal.commandservices" {
+            class OrganizationCommandServiceImpl <<service>> {
+                -organizationRepository: OrganizationRepository
+                -fundoRepository: FundoRepository
+                -fieldRepository: FieldRepository
+                -cropRepository: CropRepository
+                +handle(command: CreateOrganizationCommand): Result<Organization, ApplicationError>
+                +handle(command: UpdateOrganizationCommand): Result<Organization, ApplicationError>
+                +handle(command: DeleteOrganizationCommand): Result<Void, ApplicationError>
+                +handle(command: RegisterFundoCommand): Result<Fundo, ApplicationError>
+                +handle(command: RegisterFieldCommand): Result<Field, ApplicationError>
+                +handle(command: RegisterCropCommand): Result<Crop, ApplicationError>
+            }
+        }
+
+        package "application.internal.queryservices" {
+            class OrganizationQueryServiceImpl <<service>> {
+                -organizationRepository: OrganizationRepository
+                -fundoRepository: FundoRepository
+                -fieldRepository: FieldRepository
+                -cropRepository: CropRepository
+                +handle(query: GetOrganizationByIdQuery): Optional<Organization>
+                +handle(query: GetAllOrganizationsQuery): List<Organization>
+                +handle(query: GetFundoByIdQuery): Optional<Fundo>
+                +handle(query: GetFundosByOrganizationQuery): List<Fundo>
+                +handle(query: GetFieldByIdQuery): Optional<Field>
+                +handle(query: GetFieldsByFundoQuery): List<Field>
+                +handle(query: GetCropByIdQuery): Optional<Crop>
+                +handle(query: GetCropsByFieldQuery): List<Crop>
+            }
+        }
+
+        package "application.internal.eventhandlers" {
+            class OrganizationsOrganizationCreatedEventHandler <<event handler>> {
+                -eventPublisher: ApplicationEventPublisher
+                +on(event: OrganizationCreatedEvent): void
+            }
+        }
+
+        package "application.acl" {
+            class OrganizationsContextFacadeImpl <<facade>> {
+                -organizationCommandService: OrganizationCommandService
+                -organizationQueryService: OrganizationQueryService
+                +createOrganization(name: String, address: String): Long
+                +fetchOrganizationIdByName(name: String): Optional<Long>
+            }
+        }
+
+        ' ── DOMAIN LAYER ──────────────────────────────────────────────────────
+        package "domain.model.aggregates" {
+
+            class Organization <<aggregate>> {
+                -id: OrganizationId
+                -name: String
+                -address: String
+                +Organization(command: CreateOrganizationCommand)
+                +Organization(id: Long, name: String, address: String)
+                +update(command: UpdateOrganizationCommand): void
+                +getId(): OrganizationId
+                +getName(): String
+                +getAddress(): String
+            }
+
+            class Fundo <<aggregate>> {
+                -id: FundoId
+                -organizationId: OrganizationId
+                -name: String
+                -location: GeoLocation
+                +Fundo(command: RegisterFundoCommand)
+                +Fundo(id: Long, organizationId: Long, name: String, latitude: Double, longitude: Double)
+                +getId(): FundoId
+                +getOrganizationId(): OrganizationId
+                +getName(): String
+                +getLocation(): GeoLocation
+            }
+
+            class Field <<aggregate>> {
+                -id: FieldId
+                -fundoId: FundoId
+                -name: String
+                -areaSqm: Double
+                +Field(command: RegisterFieldCommand)
+                +Field(id: Long, fundoId: Long, name: String, areaSqm: Double)
+                +getId(): FieldId
+                +getFundoId(): FundoId
+                +getName(): String
+                +getAreaSqm(): Double
+            }
+
+            class Crop <<aggregate>> {
+                -id: CropId
+                -fieldId: FieldId
+                -name: String
+                -plantedAt: LocalDate
+                +Crop(command: RegisterCropCommand)
+                +Crop(id: Long, fieldId: Long, name: String, plantedAt: LocalDate)
+                +getId(): CropId
+                +getFieldId(): FieldId
+                +getName(): String
+                +getPlantedAt(): LocalDate
+            }
+        }
+
+        package "domain.model.commands" {
+            class CreateOrganizationCommand <<command>> {
+                +name: String
+                +address: String
+            }
+            class UpdateOrganizationCommand <<command>> {
+                +organizationId: Long
+                +name: String
+                +address: String
+            }
+            class DeleteOrganizationCommand <<command>> {
+                +organizationId: Long
+            }
+            class RegisterFundoCommand <<command>> {
+                +organizationId: Long
+                +name: String
+                +latitude: Double
+                +longitude: Double
+            }
+            class RegisterFieldCommand <<command>> {
+                +fundoId: Long
+                +name: String
+                +areaSqm: Double
+            }
+            class RegisterCropCommand <<command>> {
+                +fieldId: Long
+                +name: String
+                +plantedAt: LocalDate
+            }
+        }
+
+        package "domain.model.queries" {
+            class GetOrganizationByIdQuery <<query>> {
+                +organizationId: OrganizationId
+            }
+            class GetAllOrganizationsQuery <<query>>
+            class GetFundoByIdQuery <<query>> {
+                +fundoId: FundoId
+            }
+            class GetFundosByOrganizationQuery <<query>> {
+                +organizationId: OrganizationId
+            }
+            class GetFieldByIdQuery <<query>> {
+                +fieldId: FieldId
+            }
+            class GetFieldsByFundoQuery <<query>> {
+                +fundoId: FundoId
+            }
+            class GetCropByIdQuery <<query>> {
+                +cropId: CropId
+            }
+            class GetCropsByFieldQuery <<query>> {
+                +fieldId: FieldId
+            }
+        }
+
+        package "domain.model.events" {
+            class OrganizationCreatedEvent <<domain event>> {
+                +organization: Organization
+            }
+        }
+
+        package "domain.model.valueobjects" {
+            class OrganizationId <<value object>> {
+                -value: Long
+                +of(value: Long): OrganizationId
+                +getValue(): Long
+            }
+            class FundoId <<value object>> {
+                -value: Long
+                +of(value: Long): FundoId
+                +getValue(): Long
+            }
+            class FieldId <<value object>> {
+                -value: Long
+                +of(value: Long): FieldId
+                +getValue(): Long
+            }
+            class CropId <<value object>> {
+                -value: Long
+                +of(value: Long): CropId
+                +getValue(): Long
+            }
+            class GeoLocation <<value object>> {
+                -latitude: Double
+                -longitude: Double
+                +of(latitude: Double, longitude: Double): GeoLocation
+                +getLatitude(): Double
+                +getLongitude(): Double
+                +distanceTo(other: GeoLocation): Double
+            }
+        }
+
+        package "domain.repositories" {
+            interface OrganizationRepository <<repository>> {
+                +save(organization: Organization): Organization
+                +findById(id: OrganizationId): Optional<Organization>
+                +findByName(name: String): Optional<Organization>
+                +findAll(): List<Organization>
+                +delete(id: OrganizationId): void
+                +existsByName(name: String): boolean
+            }
+            interface FundoRepository <<repository>> {
+                +save(fundo: Fundo): Fundo
+                +findById(id: FundoId): Optional<Fundo>
+                +findByOrganizationId(organizationId: OrganizationId): List<Fundo>
+                +findAll(): List<Fundo>
+                +existsById(id: FundoId): boolean
+            }
+            interface FieldRepository <<repository>> {
+                +save(field: Field): Field
+                +findById(id: FieldId): Optional<Field>
+                +findByFundoId(fundoId: FundoId): List<Field>
+                +existsById(id: FieldId): boolean
+            }
+            interface CropRepository <<repository>> {
+                +save(crop: Crop): Crop
+                +findById(id: CropId): Optional<Crop>
+                +findByFieldId(fieldId: FieldId): List<Crop>
+                +existsById(id: CropId): boolean
+            }
+        }
+
+        ' ── INFRASTRUCTURE LAYER ──────────────────────────────────────────────
+        package "infrastructure.persistence.jpa.embeddables" {
+            class GeoLocationPersistenceEmbeddable <<embeddable>> {
+                -latitude: Double
+                -longitude: Double
+            }
+        }
+
+        package "infrastructure.persistence.jpa.entities" {
+            class OrganizationPersistenceEntity <<entity>> {
+                -name: String
+                -address: String
+            }
+            class FundoPersistenceEntity <<entity>> {
+                -organizationId: Long
+                -name: String
+                -location: GeoLocationPersistenceEmbeddable
+            }
+            class FieldPersistenceEntity <<entity>> {
+                -fundoId: Long
+                -name: String
+                -areaSqm: Double
+            }
+            class CropPersistenceEntity <<entity>> {
+                -fieldId: Long
+                -name: String
+                -plantedAt: LocalDate
+            }
+        }
+
+        package "infrastructure.persistence.jpa.assemblers" {
+            class OrganizationPersistenceAssembler <<assembler>> {
+                +toDomainFromPersistence(entity: OrganizationPersistenceEntity): Organization
+                +toPersistenceFromDomain(organization: Organization): OrganizationPersistenceEntity
+            }
+            class FundoPersistenceAssembler <<assembler>> {
+                +toDomainFromPersistence(entity: FundoPersistenceEntity): Fundo
+                +toPersistenceFromDomain(fundo: Fundo): FundoPersistenceEntity
+            }
+            class FieldPersistenceAssembler <<assembler>> {
+                +toDomainFromPersistence(entity: FieldPersistenceEntity): Field
+                +toPersistenceFromDomain(field: Field): FieldPersistenceEntity
+            }
+            class CropPersistenceAssembler <<assembler>> {
+                +toDomainFromPersistence(entity: CropPersistenceEntity): Crop
+                +toPersistenceFromDomain(crop: Crop): CropPersistenceEntity
+            }
+        }
+
+        package "infrastructure.persistence.jpa.repositories" {
+            interface OrganizationJpaRepository <<jpa repository>> {
+                +findByName(name: String): Optional<OrganizationPersistenceEntity>
+                +countByName(name: String): long
+            }
+            interface FundoJpaRepository <<jpa repository>> {
+                +findByOrganizationId(organizationId: Long): List<FundoPersistenceEntity>
+            }
+            interface FieldJpaRepository <<jpa repository>> {
+                +findByFundoId(fundoId: Long): List<FieldPersistenceEntity>
+            }
+            interface CropJpaRepository <<jpa repository>> {
+                +findByFieldId(fieldId: Long): List<CropPersistenceEntity>
+            }
+        }
+
+        package "infrastructure.persistence.jpa.adapters" {
+            class OrganizationRepositoryImpl <<adapter>>
+            class FundoRepositoryImpl <<adapter>>
+            class FieldRepositoryImpl <<adapter>>
+            class CropRepositoryImpl <<adapter>>
+        }
+
+        ' ── RELATIONSHIPS ─────────────────────────────────────────────────────
+
+        ' Controller
+        OrganizationController --> OrganizationCommandService
+        OrganizationController --> OrganizationQueryService
+
+        ' ACL
+        OrganizationsContextFacadeImpl ..|> OrganizationsContextFacade
+        OrganizationsContextFacadeImpl --> OrganizationCommandService
+        OrganizationsContextFacadeImpl --> OrganizationQueryService
+
+        ' Service implementations
+        OrganizationCommandServiceImpl ..|> OrganizationCommandService
+        OrganizationQueryServiceImpl   ..|> OrganizationQueryService
+        OrganizationCommandServiceImpl --> OrganizationRepository
+        OrganizationCommandServiceImpl --> FundoRepository
+        OrganizationCommandServiceImpl --> FieldRepository
+        OrganizationCommandServiceImpl --> CropRepository
+        OrganizationQueryServiceImpl   --> OrganizationRepository
+        OrganizationQueryServiceImpl   --> FundoRepository
+        OrganizationQueryServiceImpl   --> FieldRepository
+        OrganizationQueryServiceImpl   --> CropRepository
+
+        ' Event handler
+        OrganizationsOrganizationCreatedEventHandler --> OrganizationCreatedEvent
+        OrganizationsOrganizationCreatedEventHandler ..> OrganizationCreatedIntegrationEvent : republishes
+
+        ' Repository adapters
+        OrganizationRepositoryImpl ..|> OrganizationRepository
+        FundoRepositoryImpl        ..|> FundoRepository
+        FieldRepositoryImpl        ..|> FieldRepository
+        CropRepositoryImpl         ..|> CropRepository
+
+        OrganizationRepositoryImpl --> OrganizationPersistenceAssembler : uses
+        FundoRepositoryImpl        --> FundoPersistenceAssembler        : uses
+        FieldRepositoryImpl        --> FieldPersistenceAssembler        : uses
+        CropRepositoryImpl         --> CropPersistenceAssembler         : uses
+
+        OrganizationJpaRepository --> OrganizationPersistenceEntity : manages
+        FundoJpaRepository        --> FundoPersistenceEntity        : manages
+        FieldJpaRepository        --> FieldPersistenceEntity        : manages
+        CropJpaRepository         --> CropPersistenceEntity         : manages
+
+        ' Persistence entities extend shared base
+        OrganizationPersistenceEntity --|> AuditableAbstractPersistenceEntity
+        FundoPersistenceEntity        --|> AuditableAbstractPersistenceEntity
+        FieldPersistenceEntity        --|> AuditableAbstractPersistenceEntity
+        CropPersistenceEntity         --|> AuditableAbstractPersistenceEntity
+
+        ' GeoLocation embeddable
+        FundoPersistenceEntity *-- GeoLocationPersistenceEmbeddable
+
+        ' Aggregates extend shared base
+        Organization --|> AbstractDomainAggregateRoot
+        Fundo        --|> AbstractDomainAggregateRoot
+        Field        --|> AbstractDomainAggregateRoot
+        Crop         --|> AbstractDomainAggregateRoot
+
+        ' Aggregate value objects
+        Organization *-- OrganizationId
+        Fundo        *-- FundoId
+        Fundo        *-- OrganizationId
+        Fundo        *-- GeoLocation
+        Field        *-- FieldId
+        Field        *-- FundoId
+        Crop         *-- CropId
+        Crop         *-- FieldId
+
+        ' Cross-aggregate references (by ID only — not object references)
+        Fundo ..> Organization : references via OrganizationId
+        Field ..> Fundo        : references via FundoId
+        Crop  ..> Field        : references via FieldId
+
+        ' Domain events
+        Organization ..> OrganizationCreatedEvent : publishes
+
+        ' Queries use value objects
+        GetOrganizationByIdQuery    --> OrganizationId
+        GetFundoByIdQuery           --> FundoId
+        GetFundosByOrganizationQuery --> OrganizationId
+        GetFieldByIdQuery           --> FieldId
+        GetFieldsByFundoQuery       --> FundoId
+        GetCropByIdQuery            --> CropId
+        GetCropsByFieldQuery        --> FieldId
+    }
+}
+
+@enduml
