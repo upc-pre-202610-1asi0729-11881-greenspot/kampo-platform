@@ -17,7 +17,7 @@ public record ScheduleFieldVisitCommand(Long fieldId, Long agentId, LocalDateTim
             throw new IllegalArgumentException("agentId must be positive");
         if (scheduledAt == null)
             throw new IllegalArgumentException("scheduledAt must not be null");
-        if (scheduledAt.isBefore(LocalDateTime.now()))
-            throw new IllegalArgumentException("scheduledAt must be in the future");
+        if (scheduledAt.isBefore(LocalDateTime.now().minusMinutes(5)))
+            throw new IllegalArgumentException("scheduledAt must not be in the past");
     }
 }

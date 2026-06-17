@@ -6,6 +6,7 @@ import com.acme.kampo.platform.field.domain.model.events.ObservationRegisteredEv
 import com.acme.kampo.platform.field.domain.model.valueobjects.FieldVisitId;
 import com.acme.kampo.platform.field.domain.model.valueobjects.ObservationId;
 import com.acme.kampo.platform.shared.domain.model.aggregates.AbstractDomainAggregateRoot;
+import lombok.Getter;
 
 /**
  * Aggregate root representing an observation recorded during a field visit.
@@ -18,6 +19,7 @@ import com.acme.kampo.platform.shared.domain.model.aggregates.AbstractDomainAggr
  *
  * <p>Publishes {@link ObservationRegisteredEvent} on creation.</p>
  */
+@Getter
 public class Observation extends AbstractDomainAggregateRoot<Observation> {
 
     private ObservationId id;
@@ -90,16 +92,6 @@ public class Observation extends AbstractDomainAggregateRoot<Observation> {
     }
 
     // ── Getters ───────────────────────────────────────────────────────────────
-
-    public ObservationId getId()              { return id; }
-    public FieldVisitId  getFieldVisitId()    { return fieldVisitId; }
-    public String        getNotes()           { return notes; }
-    public String        getPestName()        { return pestName; }
-    public Severity      getPestSeverity()    { return pestSeverity; }
-    public String        getDiseaseName()     { return diseaseName; }
-    public Severity      getDiseaseSeverity() { return diseaseSeverity; }
-    public String        getRecommendation()  { return recommendation; }
-    public String        getEvidenceUrl()     { return evidenceUrl; }
 
     public Observation reconstitute(Long rawId) {
         this.id = ObservationId.of(rawId);

@@ -3,11 +3,15 @@ package com.acme.kampo.platform.field.infrastructure.persistence.jpa.entities;
 import com.acme.kampo.platform.field.domain.model.enums.Severity;
 import com.acme.kampo.platform.shared.infrastructure.persistence.jpa.entities.AuditableAbstractPersistenceEntity;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * JPA persistence entity for the {@link com.acme.kampo.platform.fieldoperation.domain.model.aggregates.Observation} aggregate.
  * Translation handled by {@link com.acme.kampo.platform.fieldoperation.infrastructure.persistence.jpa.assemblers.ObservationPersistenceAssembler}.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "observations")
 public class ObservationPersistenceEntity extends AuditableAbstractPersistenceEntity {
@@ -40,20 +44,4 @@ public class ObservationPersistenceEntity extends AuditableAbstractPersistenceEn
 
     public ObservationPersistenceEntity() {}
 
-    public Long     getFieldVisitId()                      { return fieldVisitId; }
-    public void setFieldVisitId(Long fieldVisitId)         { this.fieldVisitId = fieldVisitId; }
-    public String   getNotes()                             { return notes; }
-    public void setNotes(String notes)                     { this.notes = notes; }
-    public String   getPestName()                          { return pestName; }
-    public void setPestName(String pestName)               { this.pestName = pestName; }
-    public Severity getPestSeverity()                      { return pestSeverity; }
-    public void setPestSeverity(Severity pestSeverity)     { this.pestSeverity = pestSeverity; }
-    public String   getDiseaseName()                       { return diseaseName; }
-    public void setDiseaseName(String diseaseName)         { this.diseaseName = diseaseName; }
-    public Severity getDiseaseSeverity()                   { return diseaseSeverity; }
-    public void setDiseaseSeverity(Severity diseaseSeverity){ this.diseaseSeverity = diseaseSeverity; }
-    public String   getRecommendation()                    { return recommendation; }
-    public void setRecommendation(String recommendation)   { this.recommendation = recommendation; }
-    public String   getEvidenceUrl()                       { return evidenceUrl; }
-    public void setEvidenceUrl(String evidenceUrl)         { this.evidenceUrl = evidenceUrl; }
 }
