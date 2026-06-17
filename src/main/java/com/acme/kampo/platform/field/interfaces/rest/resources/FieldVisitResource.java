@@ -20,11 +20,11 @@ public record FieldVisitResource(
         @Schema(description = "ID of the agent who carried out the visit", example = "1")
         Long agentId,
 
-        @Schema(description = "Scheduled date and time", example = "2025-07-15T09:00:00")
+        @Schema(description = "Scheduled date and time", example = "2026-08-01T09:00:00")
         LocalDateTime scheduledAt,
 
         @Schema(description = "Date and time the visit was completed — null if not yet done",
-                example = "2025-07-15T11:30:00")
+                example = "2026-08-01T11:30:00")
         LocalDateTime doneAt,
 
         @Schema(description = "Current status of the visit", example = "SCHEDULED")
