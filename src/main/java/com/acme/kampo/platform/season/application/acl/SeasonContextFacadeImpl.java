@@ -3,8 +3,8 @@ package com.acme.kampo.platform.season.application.acl;
 import com.acme.kampo.platform.season.application.commandservices.SeasonCommandService;
 import com.acme.kampo.platform.season.application.queryservices.SeasonQueryService;
 import com.acme.kampo.platform.season.domain.model.command.CreateSeasonCommand;
-import com.acme.kampo.platform.season.domain.model.valueObjects.FieldId;
-import com.acme.kampo.platform.season.domain.model.valueObjects.SeasonId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.FieldId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.SeasonId;
 import com.acme.kampo.platform.season.interfaces.acl.SeasonContextFacade;
 import org.springframework.stereotype.Service;
 

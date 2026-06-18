@@ -1,7 +1,7 @@
 package com.acme.kampo.platform.season.domain.model.command;
 
-import com.acme.kampo.platform.season.domain.model.valueObjects.CropId;
-import com.acme.kampo.platform.season.domain.model.valueObjects.SeasonId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.CropId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.SeasonId;
 
 public record AssignCropToSeasonCommand(SeasonId seasonId, CropId cropId) {
 

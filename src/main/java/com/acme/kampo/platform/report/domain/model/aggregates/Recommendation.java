@@ -4,8 +4,8 @@ import com.acme.kampo.platform.report.domain.model.commands.GenerateRecommendati
 import com.acme.kampo.platform.report.domain.model.commands.ImplementRecommendationCommand;
 import com.acme.kampo.platform.report.domain.model.enums.PriorityLevel;
 import com.acme.kampo.platform.report.domain.model.enums.RecommendationStatus;
-import com.acme.kampo.platform.report.domain.model.valueObjects.RecommendationId;
-import com.acme.kampo.platform.report.domain.model.valueObjects.ReportId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.RecommendationId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.ReportId;
 import com.acme.kampo.platform.shared.domain.model.aggregates.AbstractDomainAggregateRoot;
 
 import java.time.LocalDateTime;

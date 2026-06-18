@@ -1,6 +1,6 @@
 package com.acme.kampo.platform.season.infrastructure.persistence.jpa.converters;
 
-import com.acme.kampo.platform.season.domain.model.valueObjects.CropId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.CropId;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 

@@ -1,6 +1,6 @@
 package com.acme.kampo.platform.report.domain.model.queries;
 
-import com.acme.kampo.platform.report.domain.model.valueObjects.ReportId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.ReportId;
 
 public record GetReportByIdQuery(ReportId reportId) {
 

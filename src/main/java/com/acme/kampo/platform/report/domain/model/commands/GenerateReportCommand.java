@@ -1,9 +1,9 @@
 package com.acme.kampo.platform.report.domain.model.commands;
 
 import com.acme.kampo.platform.report.domain.model.enums.ReportType;
-import com.acme.kampo.platform.report.domain.model.valueObjects.FileUrl;
-import com.acme.kampo.platform.report.domain.model.valueObjects.SeasonId;
-import com.acme.kampo.platform.report.domain.model.valueObjects.UserId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.FileUrl;
+import com.acme.kampo.platform.report.domain.model.valueobjects.SeasonId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.UserId;
 
 public record GenerateReportCommand(
         ReportType type,

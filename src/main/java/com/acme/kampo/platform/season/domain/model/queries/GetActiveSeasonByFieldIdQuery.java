@@ -1,6 +1,6 @@
 package com.acme.kampo.platform.season.domain.model.queries;
 
-import com.acme.kampo.platform.season.domain.model.valueObjects.FieldId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.FieldId;
 
 public record GetActiveSeasonByFieldIdQuery(FieldId fieldId) {
 

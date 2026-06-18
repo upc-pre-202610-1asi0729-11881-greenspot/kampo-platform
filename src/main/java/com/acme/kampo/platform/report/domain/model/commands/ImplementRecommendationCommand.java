@@ -1,6 +1,6 @@
 package com.acme.kampo.platform.report.domain.model.commands;
 
-import com.acme.kampo.platform.report.domain.model.valueObjects.RecommendationId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.RecommendationId;
 
 public record ImplementRecommendationCommand(RecommendationId recommendationId) {
 

@@ -8,11 +8,11 @@ import com.acme.kampo.platform.report.domain.model.commands.ImplementRecommendat
 import com.acme.kampo.platform.report.domain.model.queries.GetAllReportsQuery;
 import com.acme.kampo.platform.report.domain.model.queries.GetRecommendationsByReportIdQuery;
 import com.acme.kampo.platform.report.domain.model.queries.GetReportByIdQuery;
-import com.acme.kampo.platform.report.domain.model.valueObjects.FileUrl;
-import com.acme.kampo.platform.report.domain.model.valueObjects.RecommendationId;
-import com.acme.kampo.platform.report.domain.model.valueObjects.ReportId;
-import com.acme.kampo.platform.report.domain.model.valueObjects.SeasonId;
-import com.acme.kampo.platform.report.domain.model.valueObjects.UserId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.FileUrl;
+import com.acme.kampo.platform.report.domain.model.valueobjects.RecommendationId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.ReportId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.SeasonId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.UserId;
 import com.acme.kampo.platform.report.interfaces.rest.resources.CreateRecommendationResource;
 import com.acme.kampo.platform.report.interfaces.rest.resources.CreateReportResource;
 import com.acme.kampo.platform.report.interfaces.rest.resources.RecommendationResource;

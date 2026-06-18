@@ -1,10 +1,10 @@
 package com.acme.kampo.platform.season.infrastructure.persistence.jpa.assemblers;
 
 import com.acme.kampo.platform.season.domain.model.aggregates.Season;
-import com.acme.kampo.platform.season.domain.model.valueObjects.CropId;
-import com.acme.kampo.platform.season.domain.model.valueObjects.DateRange;
-import com.acme.kampo.platform.season.domain.model.valueObjects.FieldId;
-import com.acme.kampo.platform.season.domain.model.valueObjects.SeasonId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.CropId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.DateRange;
+import com.acme.kampo.platform.season.domain.model.valueobjects.FieldId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.SeasonId;
 import com.acme.kampo.platform.season.infrastructure.persistence.jpa.entities.SeasonPersistenceEntity;
 
 public class SeasonPersistenceAssembler {

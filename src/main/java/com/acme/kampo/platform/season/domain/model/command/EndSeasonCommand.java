@@ -1,6 +1,6 @@
 package com.acme.kampo.platform.season.domain.model.command;
 
-import com.acme.kampo.platform.season.domain.model.valueObjects.SeasonId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.SeasonId;
 import java.time.LocalDate;
 
 public record EndSeasonCommand(SeasonId seasonId, LocalDate endAt) {

@@ -1,6 +1,6 @@
 package com.acme.kampo.platform.season.domain.model.command;
 
-import com.acme.kampo.platform.season.domain.model.valueObjects.FieldId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.FieldId;
 import java.time.LocalDate;
 public record CreateSeasonCommand(FieldId fieldId, String cropName, LocalDate startAt) {
 

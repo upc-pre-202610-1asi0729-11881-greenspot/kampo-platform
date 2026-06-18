@@ -9,9 +9,9 @@ import com.acme.kampo.platform.season.domain.model.command.UpdateSeasonStatusCom
 import com.acme.kampo.platform.season.domain.model.queries.GetActiveSeasonByFieldIdQuery;
 import com.acme.kampo.platform.season.domain.model.queries.GetSeasonByIdQuery;
 import com.acme.kampo.platform.season.domain.model.queries.GetSeasonsByFieldIdQuery;
-import com.acme.kampo.platform.season.domain.model.valueObjects.CropId;
-import com.acme.kampo.platform.season.domain.model.valueObjects.FieldId;
-import com.acme.kampo.platform.season.domain.model.valueObjects.SeasonId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.CropId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.FieldId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.SeasonId;
 import com.acme.kampo.platform.season.interfaces.rest.resources.AssignCropResource;
 import com.acme.kampo.platform.season.interfaces.rest.resources.CreateSeasonResource;
 import com.acme.kampo.platform.season.interfaces.rest.resources.EndSeasonResource;

@@ -1,8 +1,8 @@
 package com.acme.kampo.platform.season.domain.repository;
 
 import com.acme.kampo.platform.season.domain.model.aggregates.Season;
-import com.acme.kampo.platform.season.domain.model.valueObjects.FieldId;
-import com.acme.kampo.platform.season.domain.model.valueObjects.SeasonId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.FieldId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.SeasonId;
 
 import java.util.List;
 import java.util.Optional;

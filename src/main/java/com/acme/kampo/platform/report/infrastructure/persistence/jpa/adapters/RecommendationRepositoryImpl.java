@@ -2,8 +2,8 @@ package com.acme.kampo.platform.report.infrastructure.persistence.jpa.adapters;
 
 import com.acme.kampo.platform.report.domain.model.aggregates.Recommendation;
 import com.acme.kampo.platform.report.domain.repositories.RecommendationRepository;
-import com.acme.kampo.platform.report.domain.model.valueObjects.RecommendationId;
-import com.acme.kampo.platform.report.domain.model.valueObjects.ReportId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.RecommendationId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.ReportId;
 import com.acme.kampo.platform.report.infrastructure.persistence.jpa.assemblers.RecommendationPersistenceAssembler;
 import com.acme.kampo.platform.report.infrastructure.persistence.jpa.repositories.RecommendationJpaRepository;
 import org.springframework.stereotype.Component;

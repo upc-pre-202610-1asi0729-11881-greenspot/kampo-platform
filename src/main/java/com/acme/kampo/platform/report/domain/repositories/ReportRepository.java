@@ -1,7 +1,7 @@
 package com.acme.kampo.platform.report.domain.repositories;
 
 import com.acme.kampo.platform.report.domain.model.aggregates.Report;
-import com.acme.kampo.platform.report.domain.model.valueObjects.ReportId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.ReportId;
 
 import java.util.List;
 import java.util.Optional;

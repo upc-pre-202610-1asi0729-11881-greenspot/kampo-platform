@@ -2,7 +2,7 @@ package com.acme.kampo.platform.report.infrastructure.persistence.jpa.adapters;
 
 import com.acme.kampo.platform.report.domain.model.aggregates.Report;
 import com.acme.kampo.platform.report.domain.repositories.ReportRepository;
-import com.acme.kampo.platform.report.domain.model.valueObjects.ReportId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.ReportId;
 import com.acme.kampo.platform.report.infrastructure.persistence.jpa.assemblers.ReportPersistenceAssembler;
 import com.acme.kampo.platform.report.infrastructure.persistence.jpa.repositories.ReportJpaRepository;
 import org.springframework.stereotype.Component;

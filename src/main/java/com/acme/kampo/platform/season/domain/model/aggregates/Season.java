@@ -6,10 +6,10 @@ import com.acme.kampo.platform.season.domain.model.command.UpdateSeasonStatusCom
 import com.acme.kampo.platform.season.domain.model.command.EndSeasonCommand;
 import com.acme.kampo.platform.season.domain.model.enums.SeasonStatus;
 import com.acme.kampo.platform.season.domain.model.events.SeasonCreatedEvent;
-import com.acme.kampo.platform.season.domain.model.valueObjects.CropId;
-import com.acme.kampo.platform.season.domain.model.valueObjects.DateRange;
-import com.acme.kampo.platform.season.domain.model.valueObjects.FieldId;
-import com.acme.kampo.platform.season.domain.model.valueObjects.SeasonId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.CropId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.DateRange;
+import com.acme.kampo.platform.season.domain.model.valueobjects.FieldId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.SeasonId;
 import com.acme.kampo.platform.shared.domain.model.aggregates.AbstractDomainAggregateRoot;
 
 public class Season extends AbstractDomainAggregateRoot<Season> {

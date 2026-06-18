@@ -1,7 +1,7 @@
 package com.acme.kampo.platform.season.domain.model.command;
 
 import com.acme.kampo.platform.season.domain.model.enums.SeasonStatus;
-import com.acme.kampo.platform.season.domain.model.valueObjects.SeasonId;
+import com.acme.kampo.platform.season.domain.model.valueobjects.SeasonId;
 
 public record UpdateSeasonStatusCommand(SeasonId seasonId, SeasonStatus newStatus) {
 

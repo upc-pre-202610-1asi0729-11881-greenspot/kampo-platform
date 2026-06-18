@@ -1,7 +1,7 @@
 package com.acme.kampo.platform.report.domain.model.commands;
 
 import com.acme.kampo.platform.report.domain.model.enums.PriorityLevel;
-import com.acme.kampo.platform.report.domain.model.valueObjects.ReportId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.ReportId;
 
 public record GenerateRecommendationCommand(
         PriorityLevel priority,

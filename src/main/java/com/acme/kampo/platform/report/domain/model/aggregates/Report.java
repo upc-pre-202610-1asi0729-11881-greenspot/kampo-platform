@@ -3,10 +3,10 @@ package com.acme.kampo.platform.report.domain.model.aggregates;
 import com.acme.kampo.platform.report.domain.model.commands.GenerateReportCommand;
 import com.acme.kampo.platform.report.domain.model.enums.ReportType;
 import com.acme.kampo.platform.report.domain.model.events.ReportGeneratedEvent;
-import com.acme.kampo.platform.report.domain.model.valueObjects.FileUrl;
-import com.acme.kampo.platform.report.domain.model.valueObjects.ReportId;
-import com.acme.kampo.platform.report.domain.model.valueObjects.SeasonId;
-import com.acme.kampo.platform.report.domain.model.valueObjects.UserId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.FileUrl;
+import com.acme.kampo.platform.report.domain.model.valueobjects.ReportId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.SeasonId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.UserId;
 import com.acme.kampo.platform.shared.domain.model.aggregates.AbstractDomainAggregateRoot;
 
 public class Report extends AbstractDomainAggregateRoot<Report> {

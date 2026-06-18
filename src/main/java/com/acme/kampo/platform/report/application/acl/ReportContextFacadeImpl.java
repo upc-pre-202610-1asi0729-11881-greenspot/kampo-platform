@@ -4,7 +4,7 @@ import com.acme.kampo.platform.report.application.commandservices.ReportCommandS
 import com.acme.kampo.platform.report.application.queryservices.ReportQueryService;
 import com.acme.kampo.platform.report.domain.model.queries.GetAllReportsQuery;
 import com.acme.kampo.platform.report.domain.model.queries.GetReportByIdQuery;
-import com.acme.kampo.platform.report.domain.model.valueObjects.ReportId;
+import com.acme.kampo.platform.report.domain.model.valueobjects.ReportId;
 import com.acme.kampo.platform.report.interfaces.acl.ReportContextFacade;
 import org.springframework.stereotype.Service;
 
