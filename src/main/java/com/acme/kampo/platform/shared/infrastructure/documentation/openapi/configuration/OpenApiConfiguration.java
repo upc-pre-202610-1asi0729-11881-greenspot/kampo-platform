@@ -58,7 +58,10 @@ public class OpenApiConfiguration {
                         .description("Staging Environment"),
                 new Server()
                         .url("https://api.acme-kampo.com")
-                        .description("Production Environment")
+                        .description("Production Environment"),
+                new Server()
+                        .url("/")
+                        .description("Current environment")
         ));
 
         // ── Security scheme ───────────────────────────────────────────────────
