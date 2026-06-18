@@ -15,23 +15,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
-/**
- * Configures the OpenAPI specification exposed by the Kampo platform.
- *
- * <p>Reads metadata from {@code application.properties} so that title,
- * description and version are never hardcoded here. Server environments
- * (local, staging, production) are declared so Swagger UI lets the user
- * switch target without editing the URL manually.
- *
- * <p>A Bearer/JWT security scheme is included but commented out — uncomment
- * when authentication is added to the platform.
- *
- * <p>Accessible at:
- * <ul>
- *   <li>Swagger UI   — http://localhost:8080/swagger-ui/index.html</li>
- *   <li>OpenAPI JSON — http://localhost:8080/v3/api-docs</li>
- * </ul>
- */
 @Configuration
 public class OpenApiConfiguration {
 
@@ -44,11 +27,6 @@ public class OpenApiConfiguration {
     @Value("${documentation.application.version}")
     String applicationVersion;
 
-    /**
-     * Builds the OpenAPI document used by Swagger UI and client generation tools.
-     *
-     * @return configured OpenAPI descriptor
-     */
     @Bean
     public OpenAPI kampoOpenApi() {
 
@@ -83,8 +61,7 @@ public class OpenApiConfiguration {
                         .description("Production Environment")
         ));
 
-        // ── Security scheme (uncomment when JWT auth is added) ────────────────
-        /*
+        // ── Security scheme ───────────────────────────────────────────────────
         final String securitySchemeName = "bearerAuth";
 
         openApi.addSecurityItem(new SecurityRequirement()
@@ -96,10 +73,8 @@ public class OpenApiConfiguration {
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
                                         .bearerFormat("JWT")
-                                        .description("JWT Bearer token for API authentication")));
-        */
+                                        .description("JWT Bearer token — obtenido desde POST /api/v1/auth/login")));
 
         return openApi;
     }
 }
- 
