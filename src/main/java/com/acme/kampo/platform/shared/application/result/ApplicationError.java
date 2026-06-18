@@ -1,6 +1,7 @@
 package com.acme.kampo.platform.shared.application.result;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents an error that occurred in the application layer.
@@ -14,7 +15,7 @@ import org.jspecify.annotations.NullMarked;
 public record ApplicationError(
         String code,
         String message,
-        String details) {
+        @Nullable String details) {
 
     /**
      * Creates an ApplicationError with code and message only.
@@ -72,4 +73,13 @@ public record ApplicationError(
                 "Unexpected error in %s".formatted(context),
                 reason);
     }
+
+    /**
+     * Unauthorized error: authentication failed or credentials are invalid
+     */
+    public static ApplicationError unauthorized(String code, String message) {
+        return new ApplicationError(code, message, null);
+    }
+
+
 }
