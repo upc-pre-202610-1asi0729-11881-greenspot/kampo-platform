@@ -1,0 +1,578 @@
+@startuml
+title Class Diagram - Profile & Access (Backend - Spring Boot)
+left to right direction
+
+package "com.acme.kampo.platform" {
+
+    package "shared" {
+        package "domain.model.aggregates" {
+            abstract class AbstractDomainAggregateRoot <<base aggregate>>
+        }
+        package "infrastructure.persistence.jpa.entities" {
+            abstract class AuditableAbstractPersistenceEntity <<base entity>>
+        }
+        package "application.result" {
+            class Result<T,E> <<sealed interface>>
+            class ApplicationError <<record>>
+        }
+    }
+
+    package "profileaccess" {
+
+        ' ── INTERFACES LAYER ──────────────────────────────────────────────────
+        package "interfaces.rest" {
+            class UserController <<controller>> {
+                -userCommandService: UserCommandService
+                -userQueryService: UserQueryService
+                +registerUser(resource: CreateUserResource): ResponseEntity<?>
+                +modifyProfile(id: Long, resource: UpdateUserResource): ResponseEntity<?>
+                +getUserById(userId: Long): ResponseEntity<?>
+                +getAllUsers(): ResponseEntity<?>
+            }
+            class AuthController <<controller>> {
+                -authCommandService: AuthCommandService
+                +login(resource: LoginResource): ResponseEntity<?>
+            }
+            class RoleController <<controller>> {
+                -roleCommandService: RoleCommandService
+                -roleQueryService: RoleQueryService
+                +createRole(resource: CreateRoleResource): ResponseEntity<?>
+                +assignRoleToUser(resource: AssignRoleResource): ResponseEntity<?>
+                +assignPermissionToRole(resource: AssignPermissionResource): ResponseEntity<?>
+                +getRolesByUser(userId: Long): ResponseEntity<?>
+                +getAllRoles(): ResponseEntity<?>
+            }
+        }
+
+        package "interfaces.acl" {
+            interface ProfileAccessContextFacade <<facade>> {
+                +fetchUserIdByEmail(email: String): Optional<Long>
+                +fetchRolesByUserId(userId: Long): List<String>
+            }
+        }
+
+        package "interfaces.events" {
+            class UserRegisteredIntegrationEvent <<integration event>> {
+                +userId: Long
+                +email: String
+                +firstName: String
+                +lastName: String
+                +from(user: User): UserRegisteredIntegrationEvent
+            }
+        }
+
+        ' ── APPLICATION LAYER ─────────────────────────────────────────────────
+        package "application.commandservices" {
+            interface UserCommandService <<service>> {
+                +handle(command: RegisterUserCommand): Result<User, ApplicationError>
+                +handle(command: ModifyProfileCommand): Result<User, ApplicationError>
+            }
+            interface AuthCommandService <<service>> {
+                +handle(command: LoginCommand): Result<String, ApplicationError>
+            }
+            interface RoleCommandService <<service>> {
+                +handle(command: CreateRoleCommand): Result<Role, ApplicationError>
+                +handle(command: CreatePermissionCommand): Result<Permission, ApplicationError>
+                +handle(command: AssignRoleCommand): Result<UserRole, ApplicationError>
+                +handle(command: AssignPermissionCommand): Result<RolePermission, ApplicationError>
+            }
+        }
+
+        package "application.queryservices" {
+            interface UserQueryService <<service>> {
+                +handle(query: GetUserByIdQuery): Optional<User>
+                +handle(query: GetAllUsersQuery): List<User>
+                +handle(query: GetUserByEmailQuery): Optional<User>
+            }
+            interface RoleQueryService <<service>> {
+                +handle(query: GetRoleByIdQuery): Optional<Role>
+                +handle(query: GetAllRolesQuery): List<Role>
+                +handle(query: GetRolesByUserQuery): List<Role>
+                +handle(query: GetPermissionsByRoleQuery): List<Permission>
+            }
+        }
+
+        package "application.internal.commandservices" {
+            class UserCommandServiceImpl <<service>> {
+                -userRepository: UserRepository
+                -roleRepository: RoleRepository
+                -userRoleRepository: UserRoleRepository
+                +handle(command: RegisterUserCommand): Result<User, ApplicationError>
+                +handle(command: ModifyProfileCommand): Result<User, ApplicationError>
+            }
+            class AuthCommandServiceImpl <<service>> {
+                -userRepository: UserRepository
+                -jwtTokenProvider: JwtTokenProvider
+                +handle(command: LoginCommand): Result<String, ApplicationError>
+            }
+            class RoleCommandServiceImpl <<service>> {
+                -roleRepository: RoleRepository
+                -permissionRepository: PermissionRepository
+                -userRoleRepository: UserRoleRepository
+                -rolePermissionRepository: RolePermissionRepository
+                -userRepository: UserRepository
+                +handle(command: CreateRoleCommand): Result<Role, ApplicationError>
+                +handle(command: CreatePermissionCommand): Result<Permission, ApplicationError>
+                +handle(command: AssignRoleCommand): Result<UserRole, ApplicationError>
+                +handle(command: AssignPermissionCommand): Result<RolePermission, ApplicationError>
+            }
+        }
+
+        package "application.internal.queryservices" {
+            class UserQueryServiceImpl <<service>> {
+                -userRepository: UserRepository
+                +handle(query: GetUserByIdQuery): Optional<User>
+                +handle(query: GetAllUsersQuery): List<User>
+                +handle(query: GetUserByEmailQuery): Optional<User>
+            }
+            class RoleQueryServiceImpl <<service>> {
+                -roleRepository: RoleRepository
+                -userRoleRepository: UserRoleRepository
+                -rolePermissionRepository: RolePermissionRepository
+                -permissionRepository: PermissionRepository
+                +handle(query: GetRoleByIdQuery): Optional<Role>
+                +handle(query: GetAllRolesQuery): List<Role>
+                +handle(query: GetRolesByUserQuery): List<Role>
+                +handle(query: GetPermissionsByRoleQuery): List<Permission>
+            }
+        }
+
+        package "application.internal.eventhandlers" {
+            class UserRegisteredEventHandler <<event handler>> {
+                -eventPublisher: ApplicationEventPublisher
+                +on(event: UserRegisteredEvent): void
+            }
+        }
+
+        package "application.acl" {
+            class ProfileAccessContextFacadeImpl <<facade>> {
+                -userQueryService: UserQueryService
+                -roleQueryService: RoleQueryService
+                +fetchUserIdByEmail(email: String): Optional<Long>
+                +fetchRolesByUserId(userId: Long): List<String>
+            }
+        }
+
+        package "application.security" {
+            class JwtTokenProvider <<component>> {
+                -secret: String
+                -expirationMs: Long
+                +generateToken(user: User): String
+                +validateToken(token: String): boolean
+                +getUserEmailFromToken(token: String): String
+            }
+        }
+
+        ' ── DOMAIN LAYER ──────────────────────────────────────────────────────
+        package "domain.model.aggregates" {
+
+            class User <<aggregate>> {
+                -id: UserId
+                -firstName: String
+                -lastName: String
+                -email: Email
+                -phone: String
+                -passwordHash: HashedPassword
+                +User(command: RegisterUserCommand, passwordHash: HashedPassword)
+                +User(id: Long, firstName: String, lastName: String, email: String, phone: String, passwordHash: String)
+                +modifyProfile(command: ModifyProfileCommand): void
+                +verifyPassword(rawPassword: String): boolean
+                +getId(): UserId
+                +getFirstName(): String
+                +getLastName(): String
+                +getEmail(): Email
+                +getPhone(): String
+                +getPasswordHash(): HashedPassword
+            }
+
+            class Role <<aggregate>> {
+                -id: RoleId
+                -position: RolePosition
+                -description: String
+                +Role(command: CreateRoleCommand)
+                +Role(id: Long, position: RolePosition, description: String)
+                +getId(): RoleId
+                +getPosition(): RolePosition
+                +getDescription(): String
+            }
+
+            class Permission <<aggregate>> {
+                -id: PermissionId
+                -category: PermissionCategory
+                -description: String
+                +Permission(command: CreatePermissionCommand)
+                +Permission(id: Long, category: PermissionCategory, description: String)
+                +getId(): PermissionId
+                +getCategory(): PermissionCategory
+                +getDescription(): String
+            }
+
+            class UserRole <<aggregate>> {
+                -id: UserRoleId
+                -userId: UserId
+                -roleId: RoleId
+                +UserRole(command: AssignRoleCommand)
+                +UserRole(id: Long, userId: Long, roleId: Long)
+                +getId(): UserRoleId
+                +getUserId(): UserId
+                +getRoleId(): RoleId
+            }
+
+            class RolePermission <<aggregate>> {
+                -id: RolePermissionId
+                -roleId: RoleId
+                -permissionId: PermissionId
+                +RolePermission(command: AssignPermissionCommand)
+                +RolePermission(id: Long, roleId: Long, permissionId: Long)
+                +getId(): RolePermissionId
+                +getRoleId(): RoleId
+                +getPermissionId(): PermissionId
+            }
+        }
+
+        package "domain.model.commands" {
+            class RegisterUserCommand <<command>> {
+                +firstName: String
+                +lastName: String
+                +email: String
+                +phone: String
+                +rawPassword: String
+            }
+            class ModifyProfileCommand <<command>> {
+                +userId: Long
+                +firstName: String
+                +lastName: String
+                +phone: String
+            }
+            class LoginCommand <<command>> {
+                +email: String
+                +rawPassword: String
+            }
+            class CreateRoleCommand <<command>> {
+                +position: RolePosition
+                +description: String
+            }
+            class CreatePermissionCommand <<command>> {
+                +category: PermissionCategory
+                +description: String
+            }
+            class AssignRoleCommand <<command>> {
+                +userId: Long
+                +roleId: Long
+            }
+            class AssignPermissionCommand <<command>> {
+                +roleId: Long
+                +permissionId: Long
+            }
+        }
+
+        package "domain.model.queries" {
+            class GetUserByIdQuery <<query>> {
+                +userId: UserId
+            }
+            class GetAllUsersQuery <<query>>
+            class GetUserByEmailQuery <<query>> {
+                +email: String
+            }
+            class GetRoleByIdQuery <<query>> {
+                +roleId: RoleId
+            }
+            class GetAllRolesQuery <<query>>
+            class GetRolesByUserQuery <<query>> {
+                +userId: UserId
+            }
+            class GetPermissionsByRoleQuery <<query>> {
+                +roleId: RoleId
+            }
+        }
+
+        package "domain.model.events" {
+            class UserRegisteredEvent <<domain event>> {
+                +user: User
+            }
+        }
+
+        package "domain.model.enums" {
+            enum RolePosition {
+                ADMIN
+                AGRONOMIST
+                TECHNICIAN
+                SUPERVISOR
+            }
+            enum PermissionCategory {
+                USERS
+                REPORTS
+                ALERTS
+                INVENTORY
+                FINANCIAL
+            }
+        }
+
+        package "domain.model.valueobjects" {
+            class UserId <<value object>> {
+                -value: Long
+                +of(value: Long): UserId
+                +getValue(): Long
+            }
+            class RoleId <<value object>> {
+                -value: Long
+                +of(value: Long): RoleId
+                +getValue(): Long
+            }
+            class PermissionId <<value object>> {
+                -value: Long
+                +of(value: Long): PermissionId
+                +getValue(): Long
+            }
+            class UserRoleId <<value object>> {
+                -value: Long
+                +of(value: Long): UserRoleId
+                +getValue(): Long
+            }
+            class RolePermissionId <<value object>> {
+                -value: Long
+                +of(value: Long): RolePermissionId
+                +getValue(): Long
+            }
+            class Email <<value object>> {
+                -value: String
+                +of(value: String): Email
+                +getValue(): String
+                +isValid(): boolean
+            }
+            class HashedPassword <<value object>> {
+                -hash: String
+                +of(rawPassword: String, encoder: PasswordEncoder): HashedPassword
+                +fromHash(hash: String): HashedPassword
+                +matches(rawPassword: String, encoder: PasswordEncoder): boolean
+                +getHash(): String
+            }
+        }
+
+        package "domain.repositories" {
+            interface UserRepository <<repository>> {
+                +save(user: User): User
+                +findById(id: UserId): Optional<User>
+                +findByEmail(email: Email): Optional<User>
+                +findAll(): List<User>
+                +existsByEmail(email: Email): boolean
+                +existsById(id: UserId): boolean
+            }
+            interface RoleRepository <<repository>> {
+                +save(role: Role): Role
+                +findById(id: RoleId): Optional<Role>
+                +findAll(): List<Role>
+                +existsByPosition(position: RolePosition): boolean
+                +findByPosition(position: RolePosition): Optional<Role>
+            }
+            interface PermissionRepository <<repository>> {
+                +save(permission: Permission): Permission
+                +findById(id: PermissionId): Optional<Permission>
+                +findAll(): List<Permission>
+                +existsByCategory(category: PermissionCategory): boolean
+            }
+            interface UserRoleRepository <<repository>> {
+                +save(userRole: UserRole): UserRole
+                +findByUserId(userId: UserId): List<UserRole>
+                +findByRoleId(roleId: RoleId): List<UserRole>
+                +existsByUserIdAndRoleId(userId: UserId, roleId: RoleId): boolean
+            }
+            interface RolePermissionRepository <<repository>> {
+                +save(rolePermission: RolePermission): RolePermission
+                +findByRoleId(roleId: RoleId): List<RolePermission>
+                +existsByRoleIdAndPermissionId(roleId: RoleId, permissionId: PermissionId): boolean
+            }
+        }
+
+        ' ── INFRASTRUCTURE LAYER ──────────────────────────────────────────────
+        package "infrastructure.persistence.jpa.entities" {
+            class UserPersistenceEntity <<entity>> {
+                -firstName: String
+                -lastName: String
+                -email: String
+                -phone: String
+                -passwordHash: String
+            }
+            class RolePersistenceEntity <<entity>> {
+                -position: RolePosition
+                -description: String
+            }
+            class PermissionPersistenceEntity <<entity>> {
+                -category: PermissionCategory
+                -description: String
+            }
+            class UserRolePersistenceEntity <<entity>> {
+                -userId: Long
+                -roleId: Long
+            }
+            class RolePermissionPersistenceEntity <<entity>> {
+                -roleId: Long
+                -permissionId: Long
+            }
+        }
+
+        package "infrastructure.persistence.jpa.assemblers" {
+            class UserPersistenceAssembler <<assembler>> {
+                +toDomainFromPersistence(entity: UserPersistenceEntity): User
+                +toPersistenceFromDomain(user: User): UserPersistenceEntity
+            }
+            class RolePersistenceAssembler <<assembler>> {
+                +toDomainFromPersistence(entity: RolePersistenceEntity): Role
+                +toPersistenceFromDomain(role: Role): RolePersistenceEntity
+            }
+            class PermissionPersistenceAssembler <<assembler>> {
+                +toDomainFromPersistence(entity: PermissionPersistenceEntity): Permission
+                +toPersistenceFromDomain(permission: Permission): PermissionPersistenceEntity
+            }
+            class UserRolePersistenceAssembler <<assembler>> {
+                +toDomainFromPersistence(entity: UserRolePersistenceEntity): UserRole
+                +toPersistenceFromDomain(userRole: UserRole): UserRolePersistenceEntity
+            }
+            class RolePermissionPersistenceAssembler <<assembler>> {
+                +toDomainFromPersistence(entity: RolePermissionPersistenceEntity): RolePermission
+                +toPersistenceFromDomain(rp: RolePermission): RolePermissionPersistenceEntity
+            }
+        }
+
+        package "infrastructure.persistence.jpa.repositories" {
+            interface UserJpaRepository <<jpa repository>> {
+                +findByEmail(email: String): Optional<UserPersistenceEntity>
+                +countByEmail(email: String): long
+            }
+            interface RoleJpaRepository <<jpa repository>> {
+                +findByPosition(position: RolePosition): Optional<RolePersistenceEntity>
+                +countByPosition(position: RolePosition): long
+            }
+            interface PermissionJpaRepository <<jpa repository>> {
+                +findByCategory(category: PermissionCategory): Optional<PermissionPersistenceEntity>
+                +countByCategory(category: PermissionCategory): long
+            }
+            interface UserRoleJpaRepository <<jpa repository>> {
+                +findByUserId(userId: Long): List<UserRolePersistenceEntity>
+                +findByRoleId(roleId: Long): List<UserRolePersistenceEntity>
+                +countByUserIdAndRoleId(userId: Long, roleId: Long): long
+            }
+            interface RolePermissionJpaRepository <<jpa repository>> {
+                +findByRoleId(roleId: Long): List<RolePermissionPersistenceEntity>
+                +countByRoleIdAndPermissionId(roleId: Long, permissionId: Long): long
+            }
+        }
+
+        package "infrastructure.persistence.jpa.adapters" {
+            class UserRepositoryImpl <<adapter>>
+            class RoleRepositoryImpl <<adapter>>
+            class PermissionRepositoryImpl <<adapter>>
+            class UserRoleRepositoryImpl <<adapter>>
+            class RolePermissionRepositoryImpl <<adapter>>
+        }
+
+        ' ── RELATIONSHIPS ─────────────────────────────────────────────────────
+
+        ' Controllers
+        UserController  --> UserCommandService
+        UserController  --> UserQueryService
+        AuthController  --> AuthCommandService
+        RoleController  --> RoleCommandService
+        RoleController  --> RoleQueryService
+
+        ' ACL
+        ProfileAccessContextFacadeImpl ..|> ProfileAccessContextFacade
+        ProfileAccessContextFacadeImpl --> UserQueryService
+        ProfileAccessContextFacadeImpl --> RoleQueryService
+
+        ' Service implementations
+        UserCommandServiceImpl  ..|> UserCommandService
+        AuthCommandServiceImpl  ..|> AuthCommandService
+        RoleCommandServiceImpl  ..|> RoleCommandService
+        UserQueryServiceImpl    ..|> UserQueryService
+        RoleQueryServiceImpl    ..|> RoleQueryService
+
+        UserCommandServiceImpl  --> UserRepository
+        UserCommandServiceImpl  --> RoleRepository
+        UserCommandServiceImpl  --> UserRoleRepository
+        AuthCommandServiceImpl  --> UserRepository
+        AuthCommandServiceImpl  --> JwtTokenProvider
+        RoleCommandServiceImpl  --> RoleRepository
+        RoleCommandServiceImpl  --> PermissionRepository
+        RoleCommandServiceImpl  --> UserRoleRepository
+        RoleCommandServiceImpl  --> RolePermissionRepository
+        RoleCommandServiceImpl  --> UserRepository
+        UserQueryServiceImpl    --> UserRepository
+        RoleQueryServiceImpl    --> RoleRepository
+        RoleQueryServiceImpl    --> UserRoleRepository
+        RoleQueryServiceImpl    --> RolePermissionRepository
+        RoleQueryServiceImpl    --> PermissionRepository
+
+        ' Event handler
+        UserRegisteredEventHandler --> UserRegisteredEvent
+        UserRegisteredEventHandler ..> UserRegisteredIntegrationEvent : republishes
+
+        ' Repository adapters
+        UserRepositoryImpl           ..|> UserRepository
+        RoleRepositoryImpl           ..|> RoleRepository
+        PermissionRepositoryImpl     ..|> PermissionRepository
+        UserRoleRepositoryImpl       ..|> UserRoleRepository
+        RolePermissionRepositoryImpl ..|> RolePermissionRepository
+
+        UserRepositoryImpl           --> UserPersistenceAssembler           : uses
+        RoleRepositoryImpl           --> RolePersistenceAssembler           : uses
+        PermissionRepositoryImpl     --> PermissionPersistenceAssembler     : uses
+        UserRoleRepositoryImpl       --> UserRolePersistenceAssembler       : uses
+        RolePermissionRepositoryImpl --> RolePermissionPersistenceAssembler : uses
+
+        UserJpaRepository           --> UserPersistenceEntity           : manages
+        RoleJpaRepository           --> RolePersistenceEntity           : manages
+        PermissionJpaRepository     --> PermissionPersistenceEntity     : manages
+        UserRoleJpaRepository       --> UserRolePersistenceEntity       : manages
+        RolePermissionJpaRepository --> RolePermissionPersistenceEntity : manages
+
+        ' Persistence entities extend shared base
+        UserPersistenceEntity           --|> AuditableAbstractPersistenceEntity
+        RolePersistenceEntity           --|> AuditableAbstractPersistenceEntity
+        PermissionPersistenceEntity     --|> AuditableAbstractPersistenceEntity
+        UserRolePersistenceEntity       --|> AuditableAbstractPersistenceEntity
+        RolePermissionPersistenceEntity --|> AuditableAbstractPersistenceEntity
+
+        ' Aggregates extend shared base
+        User           --|> AbstractDomainAggregateRoot
+        Role           --|> AbstractDomainAggregateRoot
+        Permission     --|> AbstractDomainAggregateRoot
+        UserRole       --|> AbstractDomainAggregateRoot
+        RolePermission --|> AbstractDomainAggregateRoot
+
+        ' Aggregate value objects
+        User           *-- UserId
+        User           *-- Email
+        User           *-- HashedPassword
+        Role           *-- RoleId
+        Role           --> RolePosition
+        Permission     *-- PermissionId
+        Permission     --> PermissionCategory
+        UserRole       *-- UserRoleId
+        UserRole       *-- UserId
+        UserRole       *-- RoleId
+        RolePermission *-- RolePermissionId
+        RolePermission *-- RoleId
+        RolePermission *-- PermissionId
+
+        ' Cross-aggregate references
+        UserRole       ..> User       : references via UserId
+        UserRole       ..> Role       : references via RoleId
+        RolePermission ..> Role       : references via RoleId
+        RolePermission ..> Permission : references via PermissionId
+
+        ' Domain events
+        User ..> UserRegisteredEvent : publishes
+
+        ' Queries use value objects
+        GetUserByIdQuery        --> UserId
+        GetRoleByIdQuery        --> RoleId
+        GetRolesByUserQuery     --> UserId
+        GetPermissionsByRoleQuery --> RoleId
+
+        ' Security
+        AuthCommandServiceImpl --> JwtTokenProvider
+    }
+}
+
+@enduml
