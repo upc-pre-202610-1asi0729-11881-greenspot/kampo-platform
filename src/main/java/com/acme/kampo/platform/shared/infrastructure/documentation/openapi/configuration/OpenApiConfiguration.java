@@ -51,6 +51,9 @@ public class OpenApiConfiguration {
         // ── Server environments ───────────────────────────────────────────────
         openApi.servers(List.of(
                 new Server()
+                        .url("/")
+                        .description("Current environment"),
+                new Server()
                         .url("http://localhost:8080")
                         .description("Local Development Environment"),
                 new Server()

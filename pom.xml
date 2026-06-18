@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.acme.kampo</groupId>
     <artifactId>platform</artifactId>
-    <version>3.0.0</version>
+    <version>3.0.1</version>
     <name>kampo-platform</name>
     <description>kampo-platform</description>
     <url/>
