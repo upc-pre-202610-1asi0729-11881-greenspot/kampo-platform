@@ -1,6 +1,6 @@
 services:
   kampo-platform-os:
-    image: kampo-platform-os:1.0.0
+    image: kampo-platform-os:1.0.1
     build:
       context: .
       dockerfile: Dockerfile
